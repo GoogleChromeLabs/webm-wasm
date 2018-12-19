@@ -1,0 +1,4 @@
+node_modules
+build
+encoder.js
+encoder.wasm

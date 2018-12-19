@@ -1,0 +1,26 @@
+{
+  "name": "cruft",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "install": "napa",
+    "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" trzeci/emscripten ./build.sh",
+    "serve": "http-server -c0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "gh:surma/cruft"
+  },
+  "napa": {
+    "libwebm": "webmproject/libwebm#libwebm-1.0.0.27",
+    "libvpx": "webmproject/libvpx#v1.7.0"
+  },
+  "devDependencies": {
+    "http-server": "^0.11.1",
+    "napa": "^3.0.0"
+  },
+  "keywords": [],
+  "author": "Surma <surma@surma.link>",
+  "license": "Apache-2.0"
+}
