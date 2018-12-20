@@ -8,6 +8,17 @@ export CFLAGS="${OPTIMIZE}"
 export CPPFLAGS="${OPTIMIZE}"
 
 echo "============================================="
+echo "Installing doxygen"
+echo "============================================="
+test -n "$SKIP_DOCS" || (
+  apt-get update
+  apt-get install -qqy doxygen
+)
+echo "============================================="
+echo "Installing doxygen done"
+echo "============================================="
+
+echo "============================================="
 echo "Compiling libvpx"
 echo "============================================="
 test -n "$SKIP_LIBVPX" || (
@@ -50,9 +61,9 @@ echo "============================================="
     -I node_modules/libvpx \
     -I build \
     -o ./encoder.js \
-    build/libvpx.a \
     -x c++ \
-    encoder.cpp
+    encoder.cpp \
+    build/libvpx.a
 )
 echo "============================================="
 echo "Compiling wasm bindings done"

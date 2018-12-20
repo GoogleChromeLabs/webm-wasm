@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "install": "napa",
-    "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" trzeci/emscripten ./build.sh",
+    "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_DOCS=\"${SKIP_DOCS}\" trzeci/emscripten ./build.sh",
     "serve": "http-server -c0"
   },
   "repository": {
