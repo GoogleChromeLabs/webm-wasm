@@ -28,7 +28,6 @@ test -n "$SKIP_LIBVPX" || (
     --disable-vp9-decoder \
     --disable-vp9-encoder \
     --disable-vp8-decoder \
-    --enable-webm-io \
     --target=generic-gnu
   emmake make
 )
