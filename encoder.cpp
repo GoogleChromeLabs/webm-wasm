@@ -10,7 +10,7 @@ using namespace emscripten;
 
 // Globals
 vpx_codec_err_t err;
-unsigned char *buffer = NULL;
+uint8_t *buffer = NULL;
 int bufferSize = 0;
 
 int version() {
@@ -18,9 +18,9 @@ int version() {
 }
 
 void putNoiseInYPlane(vpx_image_t *img) {
-  unsigned char *row = img->planes[0];
+  uint8_t *row = img->planes[0];
   for(int y = 0; y < img->h; y++) {
-    unsigned char *p = row;
+    uint8_t *p = row;
     for(int x = 0; x < img->w; x++) {
       *p = rand();
       p++;
@@ -47,11 +47,45 @@ bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
     if(pkt->kind != VPX_CODEC_CX_FRAME_PKT) {
       continue;
     }
-    buffer = (unsigned char*) realloc((void*)buffer, bufferSize + pkt->data.frame.sz);
+    buffer = (uint8_t*) realloc((void*)buffer, bufferSize + pkt->data.frame.sz);
     memcpy(buffer + bufferSize, pkt->data.frame.buf, pkt->data.frame.sz);
     bufferSize += pkt->data.frame.sz;
   }
   return true;
+}
+
+struct IVFHeader {
+  uint8_t signature[4]; // = "DKIF"
+  uint16_t version; // = 0
+  uint16_t length; // = 32
+  uint8_t fourcc[4]; // = "VP80"
+  uint16_t width;
+  uint16_t height;
+  uint32_t framerate; // = timebase.den
+  uint32_t timescale; // = timebase.num
+  uint32_t frames;
+  uint32_t unused; // = 0
+};
+
+struct IVFFrameHeader {
+  uint32_t length; // length of frame without this header
+  uint64_t timestamp; //
+};
+
+void prependIVFHeader(vpx_codec_enc_cfg_t *cfg, int frames) {
+  buffer = (uint8_t*) realloc((void *)buffer, bufferSize + 32);
+  memcpy(buffer+32, buffer, bufferSize);
+  bufferSize += 32;
+  auto header = (struct IVFHeader *) &buffer[0];
+  memcpy(&header->signature, "DKIF", 4);
+  header->version = 0;
+  header->length = 32;
+  memcpy(&header->fourcc, "VP80", 4);
+  header->width = (uint16_t) cfg->g_w;
+  header->height = (uint16_t) cfg->g_h;
+  header->framerate = (uint32_t) cfg->g_timebase.den;
+  header->timescale = (uint32_t) cfg->g_timebase.num;
+  header->frames = (uint32_t) frames;
 }
 
 val encode() {
@@ -81,6 +115,7 @@ val encode() {
     return val::undefined();
   }
 
+
   vpx_image_t *img = vpx_img_alloc(
     NULL, /* allocate buffer on the heap */
     VPX_IMG_FMT_I420,
@@ -104,6 +139,9 @@ val encode() {
   if(!encode_frame(&ctx, NULL, -1)) {
     return val::undefined();
   }
+
+  prependIVFHeader(&cfg, 30);
+
   return val(typed_memory_view(bufferSize, buffer));
 }
 
