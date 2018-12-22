@@ -4,22 +4,20 @@
 #include "vpxenc.h"
 #include "vpx/vp8cx.h"
 
-#include <stdio.h>
 #include <cstdlib>
 
 using namespace emscripten;
 
+// Globals
 vpx_codec_err_t err;
 unsigned char *buffer = NULL;
 int bufferSize = 0;
-
 
 int version() {
   return VPX_CODEC_ABI_VERSION;
 }
 
-
-void putNoiseInY(vpx_image_t *img) {
+void putNoiseInYPlane(vpx_image_t *img) {
   unsigned char *row = img->planes[0];
   for(int y = 0; y < img->h; y++) {
     unsigned char *p = row;
@@ -39,8 +37,8 @@ bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
     img,
     frame_cnt, /* time of frame */
     1, /* length of frame */
-    0, /* flags */
-    0 /* deadline */
+    0, /* flags. Use VPX_EFLAG_FORCE_KF to force a keyframe. */
+    0 /* deadline. 0 = best quality, 1 = realtime */
   );
   if(err != VPX_CODEC_OK) {
     return false;
@@ -73,7 +71,12 @@ val encode() {
   cfg.g_h = 300;
   cfg.rc_target_bitrate = 200; // FIXME
 
-  err = vpx_codec_enc_init(&ctx, iface, &cfg, 0 /* flags */);
+  err = vpx_codec_enc_init(
+    &ctx,
+    iface,
+    &cfg,
+    0 /* flags */
+  );
   if(err != VPX_CODEC_OK) {
     return val::undefined();
   }
@@ -81,7 +84,6 @@ val encode() {
   vpx_image_t *img = vpx_img_alloc(
     NULL, /* allocate buffer on the heap */
     VPX_IMG_FMT_I420,
-    // VPX_IMG_FMT_RGB24,
     300,
     300,
     0 /* align. simple_encoder says 1? */
@@ -91,7 +93,7 @@ val encode() {
   }
 
   for(int i = 0; i < 30; i++) {
-    // putNoiseInY(img);
+    // putNoiseInYPlane(img);
     if(!encode_frame(&ctx, img, i)) {
       return val::undefined();
     }
