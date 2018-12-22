@@ -4,6 +4,8 @@
 <script>
 Module.onRuntimeInitialized = () => {
   console.log('libvpx ABI version', Module.version());
+  const start = performance.now();
   console.log('encode', Module.encode());
+  console.log(performance.now() - start);
 }
 </script>

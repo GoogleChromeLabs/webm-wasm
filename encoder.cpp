@@ -1,21 +1,23 @@
 #include <emscripten/bind.h>
+#include <emscripten/val.h>
 #include <webmenc.h>
 #include "vpxenc.h"
 #include "vpx/vp8cx.h"
 
 #include <stdio.h>
+#include <cstdlib>
 
 using namespace emscripten;
+
+vpx_codec_err_t err;
+unsigned char *buffer = NULL;
+int bufferSize = 0;
+
 
 int version() {
   return VPX_CODEC_ABI_VERSION;
 }
 
-// TODO: Remove from final build
-void printError(vpx_codec_err_t err, vpx_codec_ctx_t *ctx) {
-  printf("%s\n", vpx_codec_err_to_string(err));
-  printf("%s\n", ctx->err_detail);
-}
 
 void putNoiseInY(vpx_image_t *img) {
   unsigned char *row = img->planes[0];
@@ -29,19 +31,40 @@ void putNoiseInY(vpx_image_t *img) {
   }
 }
 
-int encode() {
+bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
+  vpx_codec_iter_t iter = NULL;
+  const vpx_codec_cx_pkt_t *pkt;
+  err = vpx_codec_encode(
+    ctx,
+    img,
+    frame_cnt, /* time of frame */
+    1, /* length of frame */
+    0, /* flags */
+    0 /* deadline */
+  );
+  if(err != VPX_CODEC_OK) {
+    return false;
+  }
+  while((pkt = vpx_codec_get_cx_data(ctx, &iter)) != NULL) {
+    if(pkt->kind != VPX_CODEC_CX_FRAME_PKT) {
+      continue;
+    }
+    buffer = (unsigned char*) realloc((void*)buffer, bufferSize + pkt->data.frame.sz);
+    memcpy(buffer + bufferSize, pkt->data.frame.buf, pkt->data.frame.sz);
+    bufferSize += pkt->data.frame.sz;
+  }
+  return true;
+}
+
+val encode() {
   vpx_codec_ctx_t ctx;
   auto iface = vpx_codec_vp8_cx();
   vpx_codec_enc_cfg_t cfg;
   vpx_codec_err_t err;
 
-  memset(&ctx, 0, sizeof(ctx));
-  memset(&cfg, 0, sizeof(cfg));
-
   err = vpx_codec_enc_config_default(iface, &cfg, 0);
   if(err != VPX_CODEC_OK) {
-    printError(err, &ctx);
-    return 20 + err;
+    return val::undefined();
   }
 
   cfg.g_timebase.num = 1;
@@ -52,15 +75,8 @@ int encode() {
 
   err = vpx_codec_enc_init(&ctx, iface, &cfg, 0 /* flags */);
   if(err != VPX_CODEC_OK) {
-    printError(err, &ctx);
-    return 10 + err;
+    return val::undefined();
   }
-
-  // err = vpx_codec_enc_config_set(&ctx, &cfg);
-  // if(err != VPX_CODEC_OK) {
-  //   printError(err, &ctx);
-  //   return 30;
-  // }
 
   vpx_image_t *img = vpx_img_alloc(
     NULL, /* allocate buffer on the heap */
@@ -71,48 +87,37 @@ int encode() {
     0 /* align. simple_encoder says 1? */
   );
   if(img == NULL) {
-    return 40;
+    return val::undefined();
   }
-  // img->cs = VPX_CS_SRGB;
-  // img->range = VPX_CR_FULL_RANGE;
-  // img->bit_depth = 8;
-  // img->d_w = 300;
-  // img->d_h = 300;
-  // img->r_w = 300;
-  // img->r_h = 300;
 
   for(int i = 0; i < 30; i++) {
-    putNoiseInY(img);
-    err = vpx_codec_encode(
-      &ctx,
-      img,
-      i, /* time of frame */
-      1, /* length of frame */
-      0, /* flags */
-      0 /* deadline */
-    );
-    if(err != VPX_CODEC_OK) {
-      printError(err, &ctx);
-      return 1000 + i;
+    // putNoiseInY(img);
+    if(!encode_frame(&ctx, img, i)) {
+      return val::undefined();
     }
   }
-
   vpx_img_free(img);
+
   // Flush
-  if(vpx_codec_encode(
-    &ctx,
-    NULL,
-    -1, /* time of frame */
-    0, /* length of frame */
-    0, /* flags */
-    0 /* deadline */
-  ) != VPX_CODEC_OK) {
-    return 50;
+  if(!encode_frame(&ctx, NULL, -1)) {
+    return val::undefined();
   }
-  return 0;
+  return val(typed_memory_view(bufferSize, buffer));
+}
+
+val last_error() {
+  return val(std::string(vpx_codec_err_to_string(err)));
+}
+
+void free_buffer() {
+  free(buffer);
+  buffer = NULL;
+  bufferSize = 0;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
   function("version", &version);
   function("encode", &encode);
+  function("free_buffer", &free_buffer);
+  function("last_error", &last_error);
 }
