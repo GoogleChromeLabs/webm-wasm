@@ -11,13 +11,18 @@ using namespace emscripten;
 // Globals
 vpx_codec_err_t err;
 uint8_t *buffer = NULL;
-int bufferSize = 0;
+int buffer_size = 0;
+
+void grow_buffer(int delta) {
+  buffer = (uint8_t*) realloc((void *)buffer, buffer_size + delta);
+  buffer_size += delta;
+}
 
 int version() {
   return VPX_CODEC_ABI_VERSION;
 }
 
-void putNoiseInYPlane(vpx_image_t *img) {
+void add_noise_in_y_plane(vpx_image_t *img) {
   uint8_t *row = img->planes[0];
   for(int y = 0; y < img->h; y++) {
     uint8_t *p = row;
@@ -28,6 +33,12 @@ void putNoiseInYPlane(vpx_image_t *img) {
     row += img->stride[0];
   }
 }
+
+#pragma pack(1)
+struct ivf_frame_header {
+  uint32_t length; // length of frame without this header
+  uint64_t timestamp; //
+};
 
 bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
   vpx_codec_iter_t iter = NULL;
@@ -47,14 +58,18 @@ bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
     if(pkt->kind != VPX_CODEC_CX_FRAME_PKT) {
       continue;
     }
-    buffer = (uint8_t*) realloc((void*)buffer, bufferSize + pkt->data.frame.sz);
-    memcpy(buffer + bufferSize, pkt->data.frame.buf, pkt->data.frame.sz);
-    bufferSize += pkt->data.frame.sz;
+    auto frame_size = pkt->data.frame.sz;
+    grow_buffer(frame_size + 12);
+    auto header = (struct ivf_frame_header *) &buffer[buffer_size - (frame_size + 12)];
+    header->length = frame_size;
+    header->timestamp = pkt->data.frame.pts;
+    memcpy(&buffer[buffer_size - frame_size], pkt->data.frame.buf, frame_size);
   }
   return true;
 }
 
-struct IVFHeader {
+#pragma pack(1)
+struct ivf_header {
   uint8_t signature[4]; // = "DKIF"
   uint16_t version; // = 0
   uint16_t length; // = 32
@@ -67,16 +82,10 @@ struct IVFHeader {
   uint32_t unused; // = 0
 };
 
-struct IVFFrameHeader {
-  uint32_t length; // length of frame without this header
-  uint64_t timestamp; //
-};
-
-void prependIVFHeader(vpx_codec_enc_cfg_t *cfg, int frames) {
-  buffer = (uint8_t*) realloc((void *)buffer, bufferSize + 32);
-  memcpy(buffer+32, buffer, bufferSize);
-  bufferSize += 32;
-  auto header = (struct IVFHeader *) &buffer[0];
+void prepend_ivf_header(vpx_codec_enc_cfg_t *cfg, int frames) {
+  grow_buffer(32);
+  memmove(buffer+32, buffer, buffer_size-32);
+  auto header = (struct ivf_header *) &buffer[0];
   memcpy(&header->signature, "DKIF", 4);
   header->version = 0;
   header->length = 32;
@@ -86,6 +95,7 @@ void prependIVFHeader(vpx_codec_enc_cfg_t *cfg, int frames) {
   header->framerate = (uint32_t) cfg->g_timebase.den;
   header->timescale = (uint32_t) cfg->g_timebase.num;
   header->frames = (uint32_t) frames;
+  header->unused = 0;
 }
 
 val encode() {
@@ -127,8 +137,8 @@ val encode() {
     return val::undefined();
   }
 
-  for(int i = 0; i < 30; i++) {
-    // putNoiseInYPlane(img);
+  for(int i = 0; i < 300; i++) {
+    // add_noise_in_y_plane(img);
     if(!encode_frame(&ctx, img, i)) {
       return val::undefined();
     }
@@ -140,9 +150,9 @@ val encode() {
     return val::undefined();
   }
 
-  prependIVFHeader(&cfg, 30);
+  prepend_ivf_header(&cfg, 30);
 
-  return val(typed_memory_view(bufferSize, buffer));
+  return val(typed_memory_view(buffer_size, buffer));
 }
 
 val last_error() {
@@ -152,7 +162,7 @@ val last_error() {
 void free_buffer() {
   free(buffer);
   buffer = NULL;
-  bufferSize = 0;
+  buffer_size = 0;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
