@@ -56,6 +56,7 @@ echo "============================================="
     ${OPTIMIZE} \
     --bind \
     -s ALLOW_MEMORY_GROWTH=1 \
+    -s ASSERTIONS=2 \
     --std=c++11 \
     -I node_modules/libvpx \
     -I node_modules/libwebm \

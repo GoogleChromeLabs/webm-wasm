@@ -6,8 +6,11 @@ Module.onRuntimeInitialized = () => {
   console.log('libvpx ABI version', Module.version());
   const start = performance.now();
   const data = Module.encode();
+  if(!data) {
+    throw Error("Encode() failed");
+  }
   console.log(performance.now() - start);
   const blob = URL.createObjectURL(new Blob([data]));
-  document.body.innerHTML = `<a href="${blob}" download="test.ivf">Download</a>`;
+  document.body.innerHTML = `<a href="${blob}" download="test.mkv">Download</a>`;
 }
 </script>

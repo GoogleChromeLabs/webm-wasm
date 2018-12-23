@@ -15,12 +15,14 @@ using namespace mkvmuxer;
 // Globals
 vpx_codec_err_t err;
 uint8_t *buffer = NULL;
+#if 0
 int buffer_size = 0;
 
 void grow_buffer(int delta) {
   buffer = (uint8_t*) realloc((void *)buffer, buffer_size + delta);
   buffer_size += delta;
 }
+#endif
 
 int version() {
   return VPX_CODEC_ABI_VERSION;
@@ -68,13 +70,15 @@ void generate_frame(vpx_image_t *img, int frame) {
   }
 }
 
+#if 0
 #pragma pack(1)
 struct ivf_frame_header {
   uint32_t length; // length of frame without this header
   uint64_t timestamp; //
 };
+#endif
 
-bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
+bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, Segment *segment, int frame_cnt) {
   vpx_codec_iter_t iter = NULL;
   const vpx_codec_cx_pkt_t *pkt;
   err = vpx_codec_encode(
@@ -93,15 +97,24 @@ bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, int frame_cnt) {
       continue;
     }
     auto frame_size = pkt->data.frame.sz;
-    grow_buffer(frame_size + 12);
-    auto header = (struct ivf_frame_header *) &buffer[buffer_size - (frame_size + 12)];
-    header->length = frame_size;
-    header->timestamp = pkt->data.frame.pts;
-    memcpy(&buffer[buffer_size - frame_size], pkt->data.frame.buf, frame_size);
+    auto is_keyframe = (pkt->data.frame.flags & VPX_FRAME_IS_KEY) != 0;
+    segment->AddFrame(
+      (uint8_t*) pkt->data.frame.buf,
+      pkt->data.frame.sz,
+      1, /* track id */
+      pkt->data.frame.pts,
+      is_keyframe
+    );
+    // grow_buffer(frame_size + 12);
+    // auto header = (struct ivf_frame_header *) &buffer[buffer_size - (frame_size + 12)];
+    // header->length = frame_size;
+    // header->timestamp = pkt->data.frame.pts;
+    // memcpy(&buffer[buffer_size - frame_size], pkt->data.frame.buf, frame_size);
   }
   return true;
 }
 
+#if 0
 #pragma pack(1)
 struct ivf_header {
   uint8_t signature[4]; // = "DKIF"
@@ -131,6 +144,7 @@ void prepend_ivf_header(vpx_codec_enc_cfg_t *cfg, int frames) {
   header->frames = (uint32_t) frames;
   header->unused = 0;
 }
+#endif
 
 #define BUFFER_SIZE 8 * 1024 * 1024
 
@@ -138,11 +152,6 @@ val encode() {
   vpx_codec_ctx_t ctx;
   auto iface = vpx_codec_vp8_cx();
   vpx_codec_enc_cfg_t cfg;
-  vpx_codec_err_t err;
-
-  buffer = (uint8_t*) malloc(BUFFER_SIZE);
-  auto f = fmemopen(buffer, BUFFER_SIZE, "wb");
-  auto mkv_writer = new MkvWriter(f);
 
   err = vpx_codec_enc_config_default(iface, &cfg, 0);
   if(err != VPX_CODEC_OK) {
@@ -165,6 +174,30 @@ val encode() {
     return val::undefined();
   }
 
+  buffer = (uint8_t*) malloc(BUFFER_SIZE);
+  if(buffer == NULL) {
+    return val::undefined();
+  }
+  memset(buffer, 0, BUFFER_SIZE);
+  auto f = fmemopen(buffer, BUFFER_SIZE, "wb");
+  auto mkv_writer = new MkvWriter(f);
+  // if(!WriteEbmlHeader(mkv_writer)) {
+  //   return val::undefined();
+  // }
+  auto main_segment = new Segment();
+  if(!main_segment->Init(mkv_writer)) {
+    return val::undefined();
+  }
+  if(main_segment->AddVideoTrack(cfg.g_w, cfg.g_h, 1 /* track id */) == 0) {
+    return val::undefined();
+  }
+  main_segment->set_mode(Segment::Mode::kFile);
+  auto info = main_segment->GetSegmentInfo();
+  // BRANDING yo
+  auto muxing_app = std::string(info->muxing_app()) + " but in wasm";
+  auto writing_app = std::string(info->writing_app()) + " but in wasm";
+  info->set_writing_app(writing_app.c_str());
+  info->set_muxing_app(muxing_app.c_str());
 
   vpx_image_t *img = vpx_img_alloc(
     NULL, /* allocate buffer on the heap */
@@ -179,20 +212,24 @@ val encode() {
 
   for(int i = 0; i < 100; i++) {
     generate_frame(img, i);
-    if(!encode_frame(&ctx, img, i)) {
+    if(!encode_frame(&ctx, img, main_segment, i)) {
       return val::undefined();
     }
   }
   vpx_img_free(img);
 
   // Flush
-  if(!encode_frame(&ctx, NULL, -1)) {
+  if(!encode_frame(&ctx, NULL, main_segment, -1)) {
     return val::undefined();
   }
 
-  prepend_ivf_header(&cfg, 30);
-
-  return val(typed_memory_view(buffer_size, buffer));
+  if(!main_segment->Finalize()) {
+    return val::undefined();
+  }
+  fflush(f);
+  // delete main_segment;
+  // delete mkv_writer;
+  return val(typed_memory_view(mkv_writer->Position(), buffer));
 }
 
 val last_error() {
@@ -201,8 +238,8 @@ val last_error() {
 
 void free_buffer() {
   free(buffer);
-  buffer = NULL;
-  buffer_size = 0;
+  // buffer = NULL;
+  // buffer_size = 0;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
