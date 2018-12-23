@@ -22,15 +22,45 @@ int version() {
   return VPX_CODEC_ABI_VERSION;
 }
 
-void add_noise_in_y_plane(vpx_image_t *img) {
-  uint8_t *row = img->planes[0];
-  for(int y = 0; y < img->h; y++) {
-    uint8_t *p = row;
-    for(int x = 0; x < img->w; x++) {
-      *p = rand();
-      p++;
+int vpx_img_plane_width(const vpx_image_t *img, int plane) {
+  if ((plane == 1 || plane == 2) && img->x_chroma_shift > 0 )
+    return (img->d_w + 1) >> img->x_chroma_shift;
+  else
+    return img->d_w;
+}
+
+int vpx_img_plane_height(const vpx_image_t *img, int plane) {
+  if ((plane == 1 || plane == 2) && img->y_chroma_shift > 0)
+    return (img->d_h + 1) >> img->y_chroma_shift;
+  else
+    return img->d_h;
+}
+
+void clear_image(vpx_image_t *img) {
+  for(int plane = 0; plane < 4; plane++) {
+    auto *row = img->planes[plane];
+    if(!row) {
+      continue;
     }
-    row += img->stride[0];
+    auto plane_width = vpx_img_plane_width(img, plane);
+    auto plane_height = vpx_img_plane_height(img, plane);
+    uint8_t value = plane == 3 ? 1 : 0;
+    for(int y = 0; y < plane_height; y++) {
+      memset(row, value, plane_width);
+      row += img->stride[plane];
+    }
+  }
+}
+
+void generate_frame(vpx_image_t *img, int frame) {
+  auto *row = img->planes[VPX_PLANE_Y];
+
+  clear_image(img);
+  row += img->stride[VPX_PLANE_Y] * frame;
+
+  for(int y = 0; y < 10; y++) {
+    memset(row + frame, 127, 10);
+    row += img->stride[VPX_PLANE_Y];
   }
 }
 
@@ -137,8 +167,8 @@ val encode() {
     return val::undefined();
   }
 
-  for(int i = 0; i < 300; i++) {
-    // add_noise_in_y_plane(img);
+  for(int i = 0; i < 100; i++) {
+    generate_frame(img, i);
     if(!encode_frame(&ctx, img, i)) {
       return val::undefined();
     }
