@@ -1,12 +1,16 @@
+#include <cstdlib>
+// emscripten
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
-#include <webmenc.h>
+// libvpx
 #include "vpxenc.h"
 #include "vpx/vp8cx.h"
-
-#include <cstdlib>
+// libwebm
+#include "mkvmuxer.hpp"
+#include "mkvwriter.hpp"
 
 using namespace emscripten;
+using namespace mkvmuxer;
 
 // Globals
 vpx_codec_err_t err;
@@ -128,11 +132,17 @@ void prepend_ivf_header(vpx_codec_enc_cfg_t *cfg, int frames) {
   header->unused = 0;
 }
 
+#define BUFFER_SIZE 8 * 1024 * 1024
+
 val encode() {
   vpx_codec_ctx_t ctx;
   auto iface = vpx_codec_vp8_cx();
   vpx_codec_enc_cfg_t cfg;
   vpx_codec_err_t err;
+
+  buffer = (uint8_t*) malloc(BUFFER_SIZE);
+  auto f = fmemopen(buffer, BUFFER_SIZE, "wb");
+  auto mkv_writer = new MkvWriter(f);
 
   err = vpx_codec_enc_config_default(iface, &cfg, 0);
   if(err != VPX_CODEC_OK) {

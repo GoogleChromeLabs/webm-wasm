@@ -22,8 +22,8 @@ echo "============================================="
 echo "Compiling libvpx"
 echo "============================================="
 test -n "$SKIP_LIBVPX" || (
-  rm -rf build || true
-  mkdir build; cd build
+  rm -rf build-vpx || true
+  mkdir build-vpx; cd build-vpx
   emconfigure ../node_modules/libvpx/configure \
     --disable-vp9-decoder \
     --disable-vp9-encoder \
@@ -38,12 +38,12 @@ echo "============================================="
 echo "============================================="
 echo "Compiling libwebm"
 echo "============================================="
-# (
-#   rm -rf build || true
-#   mkdir build; cd build
-#   emcmake cmake ../node_modules/libwebm
-#   emmake make
-# )
+test -n "$SKIP_LIBWEBM" ||(
+  rm -rf build-webm || true
+  mkdir build-webm; cd build-webm
+  emcmake cmake ../node_modules/libwebm
+  emmake make
+)
 echo "============================================="
 echo "Compiling libwebm done"
 echo "============================================="
@@ -58,11 +58,14 @@ echo "============================================="
     -s ALLOW_MEMORY_GROWTH=1 \
     --std=c++11 \
     -I node_modules/libvpx \
-    -I build \
+    -I node_modules/libwebm \
+    -I build-vpx \
+    -I build-webm \
     -o ./encoder.js \
     -x c++ \
     encoder.cpp \
-    build/libvpx.a
+    build-vpx/libvpx.a \
+    build-webm/libwebm.a
 )
 echo "============================================="
 echo "Compiling wasm bindings done"
