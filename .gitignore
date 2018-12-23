@@ -1,4 +1,4 @@
 node_modules
-build
+build-*
 encoder.js
 encoder.wasm
