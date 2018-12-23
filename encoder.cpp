@@ -15,14 +15,6 @@ using namespace mkvmuxer;
 // Globals
 vpx_codec_err_t err;
 uint8_t *buffer = NULL;
-#if 0
-int buffer_size = 0;
-
-void grow_buffer(int delta) {
-  buffer = (uint8_t*) realloc((void *)buffer, buffer_size + delta);
-  buffer_size += delta;
-}
-#endif
 
 int version() {
   return VPX_CODEC_ABI_VERSION;
@@ -70,14 +62,6 @@ void generate_frame(vpx_image_t *img, int frame) {
   }
 }
 
-#if 0
-#pragma pack(1)
-struct ivf_frame_header {
-  uint32_t length; // length of frame without this header
-  uint64_t timestamp; //
-};
-#endif
-
 bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, Segment *segment, int frame_cnt) {
   vpx_codec_iter_t iter = NULL;
   const vpx_codec_cx_pkt_t *pkt;
@@ -102,49 +86,12 @@ bool encode_frame(vpx_codec_ctx_t *ctx, vpx_image_t *img, Segment *segment, int 
       (uint8_t*) pkt->data.frame.buf,
       pkt->data.frame.sz,
       1, /* track id */
-      pkt->data.frame.pts,
+      pkt->data.frame.pts * 1000000000ULL/30,
       is_keyframe
     );
-    // grow_buffer(frame_size + 12);
-    // auto header = (struct ivf_frame_header *) &buffer[buffer_size - (frame_size + 12)];
-    // header->length = frame_size;
-    // header->timestamp = pkt->data.frame.pts;
-    // memcpy(&buffer[buffer_size - frame_size], pkt->data.frame.buf, frame_size);
   }
   return true;
 }
-
-#if 0
-#pragma pack(1)
-struct ivf_header {
-  uint8_t signature[4]; // = "DKIF"
-  uint16_t version; // = 0
-  uint16_t length; // = 32
-  uint8_t fourcc[4]; // = "VP80"
-  uint16_t width;
-  uint16_t height;
-  uint32_t framerate; // = timebase.den
-  uint32_t timescale; // = timebase.num
-  uint32_t frames;
-  uint32_t unused; // = 0
-};
-
-void prepend_ivf_header(vpx_codec_enc_cfg_t *cfg, int frames) {
-  grow_buffer(32);
-  memmove(buffer+32, buffer, buffer_size-32);
-  auto header = (struct ivf_header *) &buffer[0];
-  memcpy(&header->signature, "DKIF", 4);
-  header->version = 0;
-  header->length = 32;
-  memcpy(&header->fourcc, "VP80", 4);
-  header->width = (uint16_t) cfg->g_w;
-  header->height = (uint16_t) cfg->g_h;
-  header->framerate = (uint32_t) cfg->g_timebase.den;
-  header->timescale = (uint32_t) cfg->g_timebase.num;
-  header->frames = (uint32_t) frames;
-  header->unused = 0;
-}
-#endif
 
 #define BUFFER_SIZE 8 * 1024 * 1024
 
@@ -181,9 +128,6 @@ val encode() {
   memset(buffer, 0, BUFFER_SIZE);
   auto f = fmemopen(buffer, BUFFER_SIZE, "wb");
   auto mkv_writer = new MkvWriter(f);
-  // if(!WriteEbmlHeader(mkv_writer)) {
-  //   return val::undefined();
-  // }
   auto main_segment = new Segment();
   if(!main_segment->Init(mkv_writer)) {
     return val::undefined();
