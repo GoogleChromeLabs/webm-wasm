@@ -7,7 +7,7 @@ Module.onRuntimeInitialized = () => {
   const start = performance.now();
   const data = Module.encode();
   if(!data) {
-    throw Error("Encode() failed");
+    throw Error(Module.last_error_desc());
   }
   console.log(performance.now() - start);
   const blob = URL.createObjectURL(new Blob([data]));

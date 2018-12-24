@@ -6,7 +6,7 @@
   "scripts": {
     "install": "napa",
     "dockerimage": "docker build -t vpxwasm .",
-    "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_LIBWEBM=\"${SKIP_LIBWEBM}\" -e SKIP_DOCS=\"${SKIP_DOCS}\" vpxwasm ./build.sh",
+    "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBYUV=\"${SKIP_LIBYUV}\" -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_LIBWEBM=\"${SKIP_LIBWEBM}\" vpxwasm ./build.sh",
     "serve": "http-server -c0"
   },
   "repository": {
@@ -15,7 +15,8 @@
   },
   "napa": {
     "libwebm": "webmproject/libwebm#libwebm-1.0.0.27",
-    "libvpx": "webmproject/libvpx#v1.7.0"
+    "libvpx": "webmproject/libvpx#v1.7.0",
+    "libyuv": "git+https://chromium.googlesource.com/libyuv/libyuv"
   },
   "devDependencies": {
     "http-server": "^0.11.1",

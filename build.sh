@@ -8,6 +8,21 @@ export CFLAGS="${OPTIMIZE}"
 export CPPFLAGS="${OPTIMIZE}"
 
 echo "============================================="
+echo "Compiling libyuv"
+echo "============================================="
+test -n "$SKIP_LIBYUV" || (
+  rm -rf build-yuv || true
+  mkdir build-yuv; cd build-yuv
+  # emcmake cmake -DCMAKE_BUILD_TYPE="Release" ../node_modules/libyuv
+  # emcmake cmake --build . --config Release
+  emcmake cmake -DCMAKE_BUILD_TYPE=Release ../node_modules/libyuv
+  emmake make
+)
+echo "============================================="
+echo "Compiling libyuv done"
+echo "============================================="
+
+echo "============================================="
 echo "Compiling libvpx"
 echo "============================================="
 test -n "$SKIP_LIBVPX" || (
@@ -47,6 +62,7 @@ echo "============================================="
     -s ALLOW_MEMORY_GROWTH=1 \
     -s ASSERTIONS=2 \
     --std=c++11 \
+    -I node_modules/libyuv/include \
     -I node_modules/libvpx \
     -I node_modules/libwebm \
     -I build-vpx \
@@ -54,6 +70,7 @@ echo "============================================="
     -o ./encoder.js \
     -x c++ \
     encoder.cpp \
+    build-yuv/libyuv.a \
     build-vpx/libvpx.a \
     build-webm/libwebm.a
 )
