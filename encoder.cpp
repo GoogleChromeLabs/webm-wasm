@@ -171,9 +171,10 @@ val encode() {
     return val::undefined();
   }
   fflush(f);
-  // delete main_segment;
-  // delete mkv_writer;
-  return val(typed_memory_view(mkv_writer->Position(), buffer));
+  auto len = mkv_writer->Position();
+  delete main_segment;
+  delete mkv_writer;
+  return val(typed_memory_view(len, buffer));
 }
 
 val last_error() {
@@ -182,8 +183,6 @@ val last_error() {
 
 void free_buffer() {
   free(buffer);
-  // buffer = NULL;
-  // buffer_size = 0;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
