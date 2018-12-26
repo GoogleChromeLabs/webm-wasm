@@ -70,6 +70,7 @@ echo "============================================="
     -o ./encoder.js \
     -x c++ \
     encoder.cpp \
+    mymkvwriter.cpp \
     build-yuv/libyuv.a \
     build-vpx/libvpx.a \
     build-webm/libwebm.a

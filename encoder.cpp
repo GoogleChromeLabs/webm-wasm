@@ -7,14 +7,13 @@
 #include "vpx/vp8cx.h"
 // libwebm
 #include "mkvmuxer.hpp"
-#include "mkvwriter.hpp"
 // libyuv
 #include "libyuv.h"
+// Our MyMkvWriter
+#include "mymkvwriter.hpp"
 
 using namespace emscripten;
 using namespace mkvmuxer;
-
-#define BUFFER_SIZE 8 * 1024 * 1024
 
 int vpx_img_plane_width(const vpx_image_t *img, int plane);
 int vpx_img_plane_height(const vpx_image_t *img, int plane);
@@ -36,23 +35,18 @@ class WebmEncoder {
     bool RGBAtoVPXImage(const uint8_t *data);
     bool EncodeFrame(vpx_image_t *img, int frame_cnt);
 
-    uint8_t *buffer;
     vpx_codec_ctx_t ctx;
     unsigned int frame_cnt = 0;
     vpx_codec_enc_cfg_t cfg;
     vpx_codec_iface_t* iface = vpx_codec_vp8_cx();
     vpx_image_t *img;
     std::string last_error;
-    FILE *f;
-    MkvWriter *mkv_writer;
+    MyMkvWriter *mkv_writer;
     Segment *main_segment;
     bool realtime = false;
 };
 
-WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_) {
-  buffer = (uint8_t*) malloc(BUFFER_SIZE);
-  memset(buffer, 0, BUFFER_SIZE);
-  realtime = realtime_;
+WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_): realtime(realtime_) {
 
   if(!InitCodec(timebase_num, timebase_den, width, height, bitrate_kbps)) {
     throw last_error;
@@ -69,7 +63,6 @@ WebmEncoder::~WebmEncoder() {
   vpx_img_free(img);
   delete main_segment;
   delete mkv_writer;
-  delete buffer;
 }
 
 bool WebmEncoder::addRGBAFrame(std::string rgba) {
@@ -87,9 +80,7 @@ val WebmEncoder::finalize() {
     last_error = "Could not finalize mkv";
     return val::undefined();
   }
-  fflush(f);
-  auto len = mkv_writer->Position();
-  return val(typed_memory_view(len, buffer));
+  return val(typed_memory_view(mkv_writer->len, mkv_writer->buf));
 }
 
 std::string WebmEncoder::lastError() {
@@ -161,8 +152,7 @@ bool WebmEncoder::InitCodec(int timebase_num, int timebase_den, unsigned int wid
 }
 
 bool WebmEncoder::InitMkvWriter() {
-  f = fmemopen(buffer, BUFFER_SIZE, "wb");
-  mkv_writer = new MkvWriter(f);
+  mkv_writer = new MyMkvWriter();
   main_segment = new Segment();
   if(!main_segment->Init(mkv_writer)) {
     last_error = "Could not initialize main segment";
