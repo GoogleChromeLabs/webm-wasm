@@ -1,11 +1,10 @@
 <!doctype html>
-
 <script src="encoder.js"></script>
 <script>
 Module.onRuntimeInitialized = async () => {
   const oc = new OffscreenCanvas(512, 512);
   const ctx = oc.getContext('2d');
-  const encoder = new Module.WebmEncoder(1, 30, 512, 512, 200);
+  const encoder = new Module.WebmEncoder(1, 60, 512, 512, 100 /*kbps*/);
   if(encoder.lastError()) {
     console.error(encoder.lastError());
     return;
@@ -21,10 +20,12 @@ Module.onRuntimeInitialized = async () => {
       console.log(`Frame ${i} failed`);
     }
   }
-  console.log('Done');
   const data = encoder.finalize();
-  const blob = URL.createObjectURL(new Blob([data]));
+  const blob = new Blob([data]);
+  const blobUrl = URL.createObjectURL(blob);
+  console.log('Done');
+  console.log(`Total file size: ${blob.size}`);
   encoder.delete();
-  document.body.innerHTML = `<video src="${blob}" autoplay loop muted controls></video>`;
+  document.body.innerHTML = `<video src="${blobUrl}" autoplay loop muted controls></video>`;
 }
 </script>

@@ -48,18 +48,18 @@ class WebmEncoder {
     Segment *main_segment;
 };
 
-WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate) {
+WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps) {
   buffer = (uint8_t*) malloc(BUFFER_SIZE);
   memset(buffer, 0, BUFFER_SIZE);
 
-  if(!InitCodec(timebase_num, timebase_den, width, height, bitrate)) {
-    return;
+  if(!InitCodec(timebase_num, timebase_den, width, height, bitrate_kbps)) {
+    throw last_error;
   }
   if(!InitMkvWriter()) {
-    return;
+    throw last_error;
   }
   if(!InitImageBuffer()) {
-    return;
+    throw last_error;
   }
 }
 
@@ -74,7 +74,6 @@ bool WebmEncoder::addRGBAFrame(std::string rgba) {
   RGBAtoVPXImage((const uint8_t*) rgba.c_str());
   return EncodeFrame(img, frame_cnt++);
 }
-
 
 val WebmEncoder::finalize() {
   if(!EncodeFrame(NULL, -1)) {
