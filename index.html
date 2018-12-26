@@ -2,14 +2,8 @@
 
 <script src="encoder.js"></script>
 <script>
-function raf() {
-  return new Promise(resolve => requestAnimationFrame(resolve));
-}
-
 Module.onRuntimeInitialized = async () => {
-  const oc = document.createElement('canvas');
-  ([oc.width, oc.height] = [512, 512]);
-  document.body.append(oc);
+  const oc = new OffscreenCanvas(512, 512);
   const ctx = oc.getContext('2d');
   const encoder = new Module.WebmEncoder(1, 30, 512, 512, 200);
   if(encoder.lastError()) {
@@ -18,7 +12,6 @@ Module.onRuntimeInitialized = async () => {
   }
   console.log('Generating...');
   for(let i = 0; i < 60; i++) {
-    console.log(i);
     ctx.fillStyle = 'red';
     ctx.fillRect(0, 0, 512, 512);
     ctx.fillStyle = 'blue';
@@ -27,13 +20,11 @@ Module.onRuntimeInitialized = async () => {
     if(!encoder.addRGBAFrame(data.data)) {
       console.log(`Frame ${i} failed`);
     }
-    await raf();
   }
   console.log('Done');
-  // TODO: Copy necessary?
-  const data = new Uint8Array(encoder.finalize());
+  const data = encoder.finalize();
   const blob = URL.createObjectURL(new Blob([data]));
   encoder.delete();
-  document.body.innerHTML = `<a href="${blob}" download="test.mkv">Download</a>`;
+  document.body.innerHTML = `<video src="${blob}" autoplay loop muted controls></video>`;
 }
 </script>

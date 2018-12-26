@@ -35,7 +35,6 @@ class WebmEncoder {
 
     bool RGBAtoVPXImage(const uint8_t *data);
     bool EncodeFrame(vpx_image_t *img, int frame_cnt);
-    void PrintState(int line);
 
     uint8_t *buffer;
     vpx_codec_ctx_t ctx;
@@ -48,20 +47,6 @@ class WebmEncoder {
     MkvWriter *mkv_writer;
     Segment *main_segment;
 };
-
-#define printState() PrintState(__LINE__)
-
-void WebmEncoder::PrintState(int l) {
-  #ifndef RELEASE
-    printf(">> %d\n", l);
-    printf("Header: (0x%08x) %c%c%c%c\n", (int) buffer, buffer[0], buffer[1], buffer[2], buffer[3]);
-    printf("File: 0x%08x\n", (int)f);
-    printf("last_errror: %s\n", last_error.c_str());
-    printf("frame_cnt: %d\n", frame_cnt);
-    printf("mkv_writer: 0x%08x\n", (int) mkv_writer);
-    printf("main_segment: 0x%08x\n", (int) main_segment);
-  #endif
-}
 
 WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate) {
   buffer = (uint8_t*) malloc(BUFFER_SIZE);
@@ -76,7 +61,6 @@ WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width,
   if(!InitImageBuffer()) {
     return;
   }
-  printState();
 }
 
 WebmEncoder::~WebmEncoder() {
@@ -93,20 +77,17 @@ bool WebmEncoder::addRGBAFrame(std::string rgba) {
 
 
 val WebmEncoder::finalize() {
-  printState();
   if(!EncodeFrame(NULL, -1)) {
     last_error = "Could not encode flush frame";
     return val::undefined();
   }
 
-  printState();
   if(!main_segment->Finalize()) {
     last_error = "Could not finalize mkv";
     return val::undefined();
   }
   fflush(f);
   auto len = mkv_writer->Position();
-  printState();
   return val(typed_memory_view(len, buffer));
 }
 
@@ -148,7 +129,6 @@ bool WebmEncoder::EncodeFrame(vpx_image_t *img, int frame_cnt) {
       return false;
     }
   }
-  printState();
   return true;
 }
 
@@ -187,7 +167,6 @@ bool WebmEncoder::InitMkvWriter() {
     last_error = "Could not initialize main segment";
     return false;
   }
-  printState();
   if(main_segment->AddVideoTrack(cfg.g_w, cfg.g_h, 1 /* track id */) == 0) {
     last_error = "Could not add video track";
     return false;
@@ -273,11 +252,6 @@ void clear_image(vpx_image_t *img) {
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
-  // function("abi_version", &abi_version);
-  // function("encode", &encode);
-  // function("free_buffer", &free_buffer);
-  // function("last_error_desc", &last_error_desc);
-
   class_<WebmEncoder>("WebmEncoder")
     .constructor<int, int, unsigned int, unsigned int, unsigned int>()
     .function("addRGBAFrame", &WebmEncoder::addRGBAFrame)
