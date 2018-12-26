@@ -22,7 +22,7 @@ void clear_image(vpx_image_t *img) ;
 
 class WebmEncoder {
   public:
-    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate);
+    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime);
     ~WebmEncoder();
     bool addRGBAFrame(std::string rgba);
     val finalize();
@@ -46,11 +46,13 @@ class WebmEncoder {
     FILE *f;
     MkvWriter *mkv_writer;
     Segment *main_segment;
+    bool realtime = false;
 };
 
-WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps) {
+WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_) {
   buffer = (uint8_t*) malloc(BUFFER_SIZE);
   memset(buffer, 0, BUFFER_SIZE);
+  realtime = realtime_;
 
   if(!InitCodec(timebase_num, timebase_den, width, height, bitrate_kbps)) {
     throw last_error;
@@ -105,7 +107,7 @@ bool WebmEncoder::EncodeFrame(vpx_image_t *img, int frame_cnt) {
     frame_cnt, /* time of frame */
     1, /* length of frame */
     0, /* flags. Use VPX_EFLAG_FORCE_KF to force a keyframe. */
-    0 /* deadline. 0 = best quality, 1 = realtime */
+    realtime ? VPX_DL_REALTIME : VPX_DL_BEST_QUALITY
   );
   if(err != VPX_CODEC_OK) {
     last_error = std::string(vpx_codec_err_to_string(err));
@@ -252,7 +254,7 @@ void clear_image(vpx_image_t *img) {
 
 EMSCRIPTEN_BINDINGS(my_module) {
   class_<WebmEncoder>("WebmEncoder")
-    .constructor<int, int, unsigned int, unsigned int, unsigned int>()
+    .constructor<int, int, unsigned int, unsigned int, unsigned int, bool>()
     .function("addRGBAFrame", &WebmEncoder::addRGBAFrame)
     .function("finalize", &WebmEncoder::finalize)
     .function("lastError", &WebmEncoder::lastError);

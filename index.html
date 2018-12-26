@@ -4,7 +4,7 @@
 Module.onRuntimeInitialized = async () => {
   const oc = new OffscreenCanvas(512, 512);
   const ctx = oc.getContext('2d');
-  const encoder = new Module.WebmEncoder(1, 60, 512, 512, 100 /*kbps*/);
+  const encoder = new Module.WebmEncoder(1, 60, 512, 512, 100 /*kbps*/, false /* realtime */);
   if(encoder.lastError()) {
     console.error(encoder.lastError());
     return;
