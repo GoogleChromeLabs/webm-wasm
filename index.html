@@ -2,15 +2,38 @@
 
 <script src="encoder.js"></script>
 <script>
-Module.onRuntimeInitialized = () => {
-  console.log('libvpx ABI version', Module.version());
-  const start = performance.now();
-  const data = Module.encode();
-  if(!data) {
-    throw Error(Module.last_error_desc());
+function raf() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+Module.onRuntimeInitialized = async () => {
+  const oc = document.createElement('canvas');
+  ([oc.width, oc.height] = [512, 512]);
+  document.body.append(oc);
+  const ctx = oc.getContext('2d');
+  const encoder = new Module.WebmEncoder(1, 30, 512, 512, 200);
+  if(encoder.lastError()) {
+    console.error(encoder.lastError());
+    return;
   }
-  console.log(performance.now() - start);
+  console.log('Generating...');
+  for(let i = 0; i < 60; i++) {
+    console.log(i);
+    ctx.fillStyle = 'red';
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(i, i, 10, 10);
+    const data = ctx.getImageData(0, 0, 512, 512);
+    if(!encoder.addRGBAFrame(data.data)) {
+      console.log(`Frame ${i} failed`);
+    }
+    await raf();
+  }
+  console.log('Done');
+  // TODO: Copy necessary?
+  const data = new Uint8Array(encoder.finalize());
   const blob = URL.createObjectURL(new Blob([data]));
+  encoder.delete();
   document.body.innerHTML = `<a href="${blob}" download="test.mkv">Download</a>`;
 }
 </script>
