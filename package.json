@@ -7,7 +7,7 @@
     "install": "napa",
     "dockerimage": "docker build -t vpxwasm .",
     "build": "docker run --rm -v $(pwd):/src -e SKIP_LIBYUV=\"${SKIP_LIBYUV}\" -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_LIBWEBM=\"${SKIP_LIBWEBM}\" vpxwasm ./build.sh",
-    "serve": "http-server -c0"
+    "serve": "cp encoder.{js,wasm} demo && http-server -c0 demo"
   },
   "repository": {
     "type": "git",

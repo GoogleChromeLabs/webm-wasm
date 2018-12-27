@@ -1,7 +1,7 @@
 Module = {
   locateFile(url) {
     if (url.endsWith('.wasm')) {
-      return "../encoder.wasm";
+      return "./encoder.wasm";
     }
     return url;
   },

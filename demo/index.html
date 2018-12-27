@@ -50,7 +50,7 @@ Example: <a href="?realtime&framerate=60"><code>?realtime&framerate=60</code></a
         });
         video.srcObject = stream;
         video.play();
-        await new Promise(resolve => video.onplaying = resolve);
+        await nextEvent(video, "playing");
         ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
         const ctx = cvs.getContext("2d");
         const frameTimeout = 1000/framerate;
@@ -121,10 +121,9 @@ Example: <a href="?realtime&framerate=60"><code>?realtime&framerate=60</code></a
       const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
       stream.pipeTo(new WritableStream({
         async write(chunk) {
-          sourceBuffer.appendBuffer(chunk); // This handles backpressure
-          await new Promise(resolve => {
-            sourceBuffer.addEventListener("updateend", resolve, {once: true});
-          });
+          sourceBuffer.appendBuffer(chunk);
+          // This handles backpressure
+          await nextEvent(sourceBuffer, "updateend");
         },
         close() {
           mediaSource.endOfStream();
