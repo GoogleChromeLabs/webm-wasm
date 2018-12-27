@@ -35,10 +35,12 @@
         await new Promise(resolve => video.onplaying = resolve);
         ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
         const ctx = cvs.getContext("2d");
-        setInterval(() => {
+        const frameTimeout = 1000/30;
+        setTimeout(async function f() {
           ctx.drawImage(video, 0, 0);
-          controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height));
-        }, 1000/30);
+          await controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height));
+          setTimeout(f, frameTimeout);
+        }, frameTimeout);
       }
     });
   }
