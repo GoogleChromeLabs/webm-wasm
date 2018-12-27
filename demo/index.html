@@ -5,13 +5,13 @@
     ([cvs.width, cvs.height] = [512, 512]);
     const ctx = cvs.getContext('2d');
     return new ReadableStream({
-      start(controller) {
+      async start(controller) {
         for (let i = 0; i < 60; i++) {
           ctx.fillStyle = 'red';
           ctx.fillRect(0, 0, 512, 512);
           ctx.fillStyle = 'blue';
           ctx.fillRect(i, i, 10, 10);
-          controller.enqueue(ctx.getImageData(0, 0, 512, 512));
+          await controller.enqueue(ctx.getImageData(0, 0, 512, 512));
         }
         controller.close();
       }
@@ -73,6 +73,9 @@
 
   async function init(realtime) {
     const worker = new Worker("worker.js");
+    if((await nextMessage(worker)).data !== "READY") {
+      throw Error("Unexpected initialization response");
+    }
 
     // Get the first item from the stream to know the dimensions
     const {stream, value} = await getFirstItem(realtime ? cameraStream() : canvasStream());
@@ -100,8 +103,7 @@
       const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
       stream.pipeTo(new WritableStream({
         async write(chunk) {
-          sourceBuffer.appendBuffer(chunk);
-          // This handles backpressure
+          sourceBuffer.appendBuffer(chunk); // This handles backpressure
           await new Promise(resolve => {
             sourceBuffer.addEventListener("updateend", resolve, {once: true});
           });
@@ -113,5 +115,5 @@
     };
     return URL.createObjectURL(mediaSource);
   }
-  init(true);
+  init(new URLSearchParams(location.search).has("live"));
 </script>

@@ -182,7 +182,8 @@ bool WebmEncoder::InitMkvWriter(val cb) {
     last_error = "Could not add video track";
     return false;
   }
-  main_segment->set_mode(realtime ? Segment::Mode::kLive : Segment::Mode::kFile);
+  // main_segment->set_mode(realtime ? Segment::Mode::kLive : Segment::Mode::kFile);
+  main_segment->set_mode(Segment::Mode::kLive);
   auto info = main_segment->GetSegmentInfo();
   // Branding, yo
   auto muxing_app = std::string(info->muxing_app()) + " but in wasm";

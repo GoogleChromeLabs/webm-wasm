@@ -6,6 +6,7 @@ Module = {
     return url;
   },
   async onRuntimeInitialized() {
+    postMessage("READY");
     addEventListener("message", createInstance);
   }
 }
@@ -15,7 +16,7 @@ function createInstance(ev) {
   let controller;
   const encoder = new Module.WebmEncoder(...ev.data, b => {
     const copy = new Uint8Array(b);
-    controller.enqueue(copy);
+    controller.enqueue(copy.buffer);
   });
   if(encoder.lastError()) {
     console.error(encoder.lastError());
