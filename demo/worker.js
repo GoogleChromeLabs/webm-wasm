@@ -6,29 +6,35 @@ Module = {
     return url;
   },
   async onRuntimeInitialized() {
-    postMessage("READY");
-    const config = await new Promise(resolve => {
-      addEventListener("message", ev => resolve(ev.data), {once: true});
-    });
-    const encoder = new Module.WebmEncoder(...config, b => {
-      const copy = new Uint8Array(b);
-      postMessage(copy.buffer, [copy.buffer]);
-    });
-    if(encoder.lastError()) {
-      console.error(encoder.lastError());
-      return;
-    }
-    addEventListener("message", function l(ev) {
-      if(!ev.data) {
-        // This will invoke the callback to flush
-        encoder.finalize();
-        // signal the end-of-stream
-        postMessage(null);
-        encoder.delete();
-        return;
-      }
-      encoder.addRGBAFrame(ev.data);
-    });
+    addEventListener("message", createInstance);
   }
 }
 importScripts("../encoder.js");
+
+function createInstance(ev) {
+  let controller;
+  const encoder = new Module.WebmEncoder(...ev.data, b => {
+    const copy = new Uint8Array(b);
+    controller.enqueue(copy);
+  });
+  if(encoder.lastError()) {
+    console.error(encoder.lastError());
+    return;
+  }
+  const ts = new TransformStream({
+    start(controller_) {
+      controller = controller_;
+    },
+    transform(chunk) {
+      if(!encoder.addRGBAFrame(chunk)) {
+        console.error(encoder.lastError());
+      }
+    },
+    flush(controller) {
+      // This will invoke the callback to flush
+      encoder.finalize();
+      encoder.delete();
+    }
+  });
+  postMessage(ts, [ts]);
+}
