@@ -6,7 +6,7 @@
     const ctx = cvs.getContext('2d');
     return new ReadableStream({
       start(controller) {
-        for (let i = 0; i < 600; i++) {
+        for (let i = 0; i < 60; i++) {
           ctx.fillStyle = 'red';
           ctx.fillRect(0, 0, 512, 512);
           ctx.fillStyle = 'blue';
@@ -43,6 +43,48 @@
     }
   }
 
+  async function streamResult(worker) {
+    const stream = new ReadableStream({
+      start(controller) {
+        worker.addEventListener("message", ev => {
+          if(!ev.data) {
+            return controller.close();
+          }
+          controller.enqueue(ev.data);
+        });
+      }
+    })
+    // const resp = new Response(stream, {headers: {"Content-Type": "video/webm"}});
+    const video = document.createElement("video");
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.controls = true;
+    video.src = mediaSourceStream(stream, {mimeType: `video/webm; codecs="vp8"`});
+    document.body.append(video);
+    video.play();
+  }
+
+  function mediaSourceStream(stream, {mimeType}) {
+    const mediaSource = new MediaSource();
+    mediaSource.onsourceopen = () => {
+      const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+      stream.pipeTo(new WritableStream({
+        async write(chunk) {
+          sourceBuffer.appendBuffer(chunk);
+          // This handles backpressure
+          await new Promise(resolve => {
+            sourceBuffer.addEventListener("updateend", resolve, {once: true});
+          });
+        },
+        close() {
+          mediaSource.endOfStream();
+        }
+      }));
+    };
+    return URL.createObjectURL(mediaSource);
+  }
+
   async function showResultFile(worker) {
     // Wait for webm file
     const result = await new Promise(resolve => {
@@ -52,7 +94,14 @@
     console.log('Done');
     console.log(`Total file size: ${result.byteLength}`);
     worker.terminate();
-    document.body.innerHTML = `<video src="${blobUrl}" autoplay loop muted controls></video>`;
+    const video = document.createElement("video");
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.controls = true;
+    video.src = blobUrl;
+    document.body.append(video);
+    video.play();
   }
-  init();
+  init(true);
 </script>

@@ -5,11 +5,15 @@
 #include <cstring>
 #include <inttypes.h>
 
+#include "emscripten/bind.h"
+
 #include "mkvmuxer.hpp"
+
+using namespace emscripten;
 
 class MyMkvWriter : public mkvmuxer::IMkvWriter {
  public:
-  explicit MyMkvWriter();
+  explicit MyMkvWriter(val cb);
   virtual ~MyMkvWriter();
 
   virtual int64_t Position() const;
@@ -18,9 +22,13 @@ class MyMkvWriter : public mkvmuxer::IMkvWriter {
   virtual int32_t Write(const void* buffer, uint32_t length);
   virtual void ElementStartNotify(uint64_t element_id, int64_t position);
 
+  void Notify();
+
+ private:
   uint8_t* buf;
   uint64_t pos;
   uint64_t len;
+  val cb;
 };
 
 #endif  // MYMKVWRITER_HPP

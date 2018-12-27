@@ -1,6 +1,6 @@
 #include "mymkvwriter.hpp"
 
-MyMkvWriter::MyMkvWriter() : pos(0), len(0) {
+MyMkvWriter::MyMkvWriter(val cb_) : pos(0), len(0), cb(cb_) {
 }
 
 MyMkvWriter::~MyMkvWriter() {
@@ -28,4 +28,8 @@ bool MyMkvWriter::Seekable() const {
 }
 
 void MyMkvWriter::ElementStartNotify(uint64_t, int64_t) {
+}
+
+void MyMkvWriter::Notify() {
+  cb(val(typed_memory_view(len, buf)));
 }

@@ -33,4 +33,5 @@ void MyMkvStreamWriter::Notify() {
   cb(val(typed_memory_view(len, buf)));
   len = 0;
   free(buf);
+  buf = NULL;
 }

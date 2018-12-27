@@ -10,18 +10,21 @@ Module = {
     const config = await new Promise(resolve => {
       addEventListener("message", ev => resolve(ev.data), {once: true});
     });
-    const encoder = new Module.WebmEncoder(...config, b => console.log(b));
+    const encoder = new Module.WebmEncoder(...config, b => {
+      const copy = new Uint8Array(b);
+      postMessage(copy.buffer, [copy.buffer]);
+    });
     if(encoder.lastError()) {
       console.error(encoder.lastError());
       return;
     }
     addEventListener("message", function l(ev) {
       if(!ev.data) {
-        // Copy from the actual wasm memory
-        const data = new Uint8Array(encoder.finalize());
-        postMessage(data.buffer, [data.buffer]);
+        // This will invoke the callback to flush
+        encoder.finalize();
+        // signal the end-of-stream
+        postMessage(null);
         encoder.delete();
-        removeEventListener("message", l);
         return;
       }
       encoder.addRGBAFrame(ev.data);

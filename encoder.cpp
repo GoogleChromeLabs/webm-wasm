@@ -25,7 +25,7 @@ class WebmEncoder {
     WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime, val cb);
     ~WebmEncoder();
     bool addRGBAFrame(std::string rgba);
-    val finalize();
+    bool finalize();
     std::string lastError();
 
   private:
@@ -81,20 +81,22 @@ bool WebmEncoder::addRGBAFrame(std::string rgba) {
   return true;
 }
 
-val WebmEncoder::finalize() {
+bool WebmEncoder::finalize() {
   if(!EncodeFrame(NULL, -1)) {
     last_error = "Could not encode flush frame";
-    return val::undefined();
+    return false;
   }
 
   if(!main_segment->Finalize()) {
     last_error = "Could not finalize mkv";
-    return val::undefined();
+    return false;
   }
-  if(!realtime) {
-    return val(typed_memory_view(((MyMkvWriter*)mkv_writer)->len, ((MyMkvWriter*)mkv_writer)->buf));
+  if(realtime) {
+    ((MyMkvStreamWriter*)mkv_writer)->Notify();
+  } else {
+    ((MyMkvWriter*)mkv_writer)->Notify();
   }
-  return val::undefined();
+  return true;
 }
 
 std::string WebmEncoder::lastError() {
@@ -169,7 +171,7 @@ bool WebmEncoder::InitMkvWriter(val cb) {
   if(realtime) {
     mkv_writer = new MyMkvStreamWriter(cb);
   } else {
-    mkv_writer = new MyMkvWriter();
+    mkv_writer = new MyMkvWriter(cb);
   }
   main_segment = new Segment();
   if(!main_segment->Init(mkv_writer)) {
