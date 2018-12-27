@@ -61,7 +61,6 @@ echo "============================================="
     --bind \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s ASSERTIONS=0 \
-    -s ENVIRONMENT=web \
     --std=c++11 \
     -I node_modules/libyuv/include \
     -I node_modules/libvpx \
@@ -72,6 +71,7 @@ echo "============================================="
     -x c++ \
     encoder.cpp \
     mymkvwriter.cpp \
+    mymkvstreamwriter.cpp \
     build-yuv/libyuv.a \
     build-vpx/libvpx.a \
     build-webm/libwebm.a

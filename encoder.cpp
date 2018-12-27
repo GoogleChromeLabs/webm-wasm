@@ -9,8 +9,9 @@
 #include "mkvmuxer.hpp"
 // libyuv
 #include "libyuv.h"
-// Our MyMkvWriter
+// Our MyMkvWriters
 #include "mymkvwriter.hpp"
+#include "mymkvstreamwriter.hpp"
 
 using namespace emscripten;
 using namespace mkvmuxer;
@@ -21,7 +22,7 @@ void clear_image(vpx_image_t *img) ;
 
 class WebmEncoder {
   public:
-    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime);
+    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime, val cb);
     ~WebmEncoder();
     bool addRGBAFrame(std::string rgba);
     val finalize();
@@ -29,7 +30,7 @@ class WebmEncoder {
 
   private:
     bool InitCodec(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate);
-    bool InitMkvWriter();
+    bool InitMkvWriter(val cb);
     bool InitImageBuffer();
 
     bool RGBAtoVPXImage(const uint8_t *data);
@@ -41,17 +42,17 @@ class WebmEncoder {
     vpx_codec_iface_t* iface = vpx_codec_vp8_cx();
     vpx_image_t *img;
     std::string last_error;
-    MyMkvWriter *mkv_writer;
+    IMkvWriter *mkv_writer;
     Segment *main_segment;
     bool realtime = false;
 };
 
-WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_): realtime(realtime_) {
+WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_, val cb): realtime(realtime_) {
 
   if(!InitCodec(timebase_num, timebase_den, width, height, bitrate_kbps)) {
     throw last_error;
   }
-  if(!InitMkvWriter()) {
+  if(!InitMkvWriter(cb)) {
     throw last_error;
   }
   if(!InitImageBuffer()) {
@@ -62,12 +63,22 @@ WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width,
 WebmEncoder::~WebmEncoder() {
   vpx_img_free(img);
   delete main_segment;
-  delete mkv_writer;
+  if(realtime) {
+    delete (MyMkvStreamWriter*)mkv_writer;
+  } else {
+    delete (MyMkvWriter*)mkv_writer;
+  }
 }
 
 bool WebmEncoder::addRGBAFrame(std::string rgba) {
   RGBAtoVPXImage((const uint8_t*) rgba.c_str());
-  return EncodeFrame(img, frame_cnt++);
+  if(!EncodeFrame(img, frame_cnt++)) {
+    return false;
+  }
+  if(realtime) {
+    ((MyMkvStreamWriter*)mkv_writer)->Notify();
+  }
+  return true;
 }
 
 val WebmEncoder::finalize() {
@@ -80,7 +91,10 @@ val WebmEncoder::finalize() {
     last_error = "Could not finalize mkv";
     return val::undefined();
   }
-  return val(typed_memory_view(mkv_writer->len, mkv_writer->buf));
+  if(!realtime) {
+    return val(typed_memory_view(((MyMkvWriter*)mkv_writer)->len, ((MyMkvWriter*)mkv_writer)->buf));
+  }
+  return val::undefined();
 }
 
 std::string WebmEncoder::lastError() {
@@ -151,8 +165,12 @@ bool WebmEncoder::InitCodec(int timebase_num, int timebase_den, unsigned int wid
   return true;
 }
 
-bool WebmEncoder::InitMkvWriter() {
-  mkv_writer = new MyMkvWriter();
+bool WebmEncoder::InitMkvWriter(val cb) {
+  if(realtime) {
+    mkv_writer = new MyMkvStreamWriter(cb);
+  } else {
+    mkv_writer = new MyMkvWriter();
+  }
   main_segment = new Segment();
   if(!main_segment->Init(mkv_writer)) {
     last_error = "Could not initialize main segment";
@@ -162,7 +180,7 @@ bool WebmEncoder::InitMkvWriter() {
     last_error = "Could not add video track";
     return false;
   }
-  main_segment->set_mode(Segment::Mode::kFile);
+  main_segment->set_mode(realtime ? Segment::Mode::kLive : Segment::Mode::kFile);
   auto info = main_segment->GetSegmentInfo();
   // Branding, yo
   auto muxing_app = std::string(info->muxing_app()) + " but in wasm";
@@ -244,7 +262,7 @@ void clear_image(vpx_image_t *img) {
 
 EMSCRIPTEN_BINDINGS(my_module) {
   class_<WebmEncoder>("WebmEncoder")
-    .constructor<int, int, unsigned int, unsigned int, unsigned int, bool>()
+    .constructor<int, int, unsigned int, unsigned int, unsigned int, bool, val>()
     .function("addRGBAFrame", &WebmEncoder::addRGBAFrame)
     .function("finalize", &WebmEncoder::finalize)
     .function("lastError", &WebmEncoder::lastError);

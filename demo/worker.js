@@ -10,7 +10,7 @@ Module = {
     const config = await new Promise(resolve => {
       addEventListener("message", ev => resolve(ev.data), {once: true});
     });
-    const encoder = new Module.WebmEncoder(...config);
+    const encoder = new Module.WebmEncoder(...config, b => console.log(b));
     if(encoder.lastError()) {
       console.error(encoder.lastError());
       return;

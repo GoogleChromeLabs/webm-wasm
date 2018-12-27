@@ -1,16 +1,20 @@
-#ifndef MYMKVWRITER_HPP
-#define MYMKVWRITER_HPP
+#ifndef MYMKVSTREAMWRITER_HPP
+#define MYMKVSTREAMWRITER_HPP
 
 #include <cstdlib>
 #include <cstring>
 #include <inttypes.h>
 
+#include "emscripten/bind.h"
+
 #include "mkvmuxer.hpp"
 
-class MyMkvWriter : public mkvmuxer::IMkvWriter {
+using namespace emscripten;
+
+class MyMkvStreamWriter : public mkvmuxer::IMkvWriter {
  public:
-  explicit MyMkvWriter();
-  virtual ~MyMkvWriter();
+  explicit MyMkvStreamWriter(val cb);
+  virtual ~MyMkvStreamWriter();
 
   virtual int64_t Position() const;
   virtual int32_t Position(int64_t position);
@@ -18,9 +22,13 @@ class MyMkvWriter : public mkvmuxer::IMkvWriter {
   virtual int32_t Write(const void* buffer, uint32_t length);
   virtual void ElementStartNotify(uint64_t element_id, int64_t position);
 
+  void Notify();
+
+ private:
   uint8_t* buf;
   uint64_t pos;
   uint64_t len;
+  val cb;
 };
 
-#endif  // MYMKVWRITER_HPP
+#endif  // MYMKVSTREAMWRITER_HPP
