@@ -60,7 +60,8 @@ echo "============================================="
     ${OPTIMIZE} \
     --bind \
     -s ALLOW_MEMORY_GROWTH=1 \
-    -s ASSERTIONS=2 \
+    -s ASSERTIONS=0 \
+    -s ENVIRONMENT=web \
     --std=c++11 \
     -I node_modules/libyuv/include \
     -I node_modules/libvpx \
