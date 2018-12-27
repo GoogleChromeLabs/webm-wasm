@@ -19,14 +19,47 @@
     });
   }
 
+  function cameraStream() {
+    return new ReadableStream({
+      async start(controller) {
+        const cvs = document.createElement("canvas");
+        const video = document.createElement("video");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: {ideal: 640},
+            height: {ideal: 360},
+          },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.play();
+        await new Promise(resolve => video.onplaying = resolve);
+        ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
+        console.log(cvs.width, cvs.height);
+        const ctx = cvs.getContext("2d");
+        requestAnimationFrame(function f() {
+          ctx.drawImage(video, 0, 0);
+          controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height).data.buffer);
+          requestAnimationFrame(f);
+        });
+      }
+    });
+  }
+
   async function init(realtime) {
     const worker = new Worker("worker.js");
     // Wait for worker + wasm to be ready
     await new Promise(resolve => worker.addEventListener("message", resolve, {once: true}));
     // Initialize encoder
-    worker.postMessage([1, 30, 512, 512, 200 /*bitrate*/, realtime]);
+    worker.postMessage([1, 60, 640, 360, 200 /*bitrate*/, realtime]);
 
-    canvasStream().pipeTo(new WritableStream({
+    let stream;
+    if(realtime) {
+      stream = cameraStream();
+    } else {
+      stream = canvasStream();
+    }
+    stream.pipeTo(new WritableStream({
       write(buffer) {
         worker.postMessage(buffer, [buffer]);
       },
@@ -54,7 +87,6 @@
         });
       }
     })
-    // const resp = new Response(stream, {headers: {"Content-Type": "video/webm"}});
     const video = document.createElement("video");
     video.muted = true;
     video.autoplay = true;
