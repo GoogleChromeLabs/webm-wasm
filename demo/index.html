@@ -1,5 +1,23 @@
 <!doctype html>
+<h1>wasm webm encoder</h1>
+<div>
+Options (as query parameters):
+<dl>
+  <dt><code>realtime</code></dt>
+  <dd>Put encoder into realtime mode and encode a <code>getUserMedia()</code> camera stream in real time</dd>
+  <dt><code>framerate</code></dt>
+  <dd>Set the target framerate (default 30)</dd>
+  <dt><code>bitrate</code></dt>
+  <dd>Set the target bitrate in kbps (default 200)</dd>
+</dl>
+Example: <a href="?realtime&framerate=10"><code>?realtime&framerate=10</code></a>
+</div>
 <script>
+  const params = new URLSearchParams(location.search);
+  const realtime = params.has("realtime");
+  const framerate = Number(params.get("framerate")) || 30;
+  const bitrate = Number(params.get("bitrate")) || 200;
+
   function canvasStream() {
     const cvs = document.createElement("canvas");
     ([cvs.width, cvs.height] = [512, 512]);
@@ -35,7 +53,7 @@
         await new Promise(resolve => video.onplaying = resolve);
         ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
         const ctx = cvs.getContext("2d");
-        const frameTimeout = 1000/30;
+        const frameTimeout = 1000/framerate;
         setTimeout(async function f() {
           ctx.drawImage(video, 0, 0);
           await controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height));
@@ -57,9 +75,9 @@
     return {value, stream};
   }
 
-  function nextMessage(target) {
+  function nextEvent(target, name) {
     return new Promise(resolve => {
-      target.addEventListener("message", resolve, {once: true});
+      target.addEventListener(name, resolve, {once: true});
     });
   }
 
@@ -71,16 +89,16 @@
     });
   }
 
-  async function init(realtime) {
+  async function init() {
     const worker = new Worker("worker.js");
-    if((await nextMessage(worker)).data !== "READY") {
+    if((await nextEvent(worker, "message")).data !== "READY") {
       throw Error("Unexpected initialization response");
     }
 
     // Get the first item from the stream to know the dimensions
     const {stream, value} = await getFirstItem(realtime ? cameraStream() : canvasStream());
-    worker.postMessage([1, 30, value.width, value.height, 200 /* bitrate */, realtime]);
-    const webmTransform = (await nextMessage(worker)).data;
+    worker.postMessage([1, framerate, value.width, value.height, bitrate, realtime]);
+    const webmTransform = (await nextEvent(worker, "message")).data;
 
     const webmStream = stream
       .pipeThrough(getBuffer())
@@ -115,5 +133,5 @@
     };
     return URL.createObjectURL(mediaSource);
   }
-  init(new URLSearchParams(location.search).has("live"));
+  init();
 </script>
