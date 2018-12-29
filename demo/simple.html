@@ -1,0 +1,54 @@
+<!doctype html>
+<h1>Simple webm wasm demo</h1>
+<button id="go">Go</button>
+<script>
+  const width = 512;
+  const height = 512;
+  const framerate = 30;
+  const bitrate = 200;
+  const canvas = document.createElement("canvas");
+  ([canvas.width, canvas.height] = [width, height]);
+  const ctx = canvas.getContext("2d");
+
+  // Returns the next <name> event of `target`.
+  function nextEvent(target, name) {
+    return new Promise(resolve => {
+      target.addEventListener(name, resolve, {once: true});
+    });
+  }
+
+  async function init() {
+    const worker = new Worker("../dist/webm-worker.umd.js");
+    worker.postMessage("../dist/webm-wasm.wasm");
+    await nextEvent(worker, "message");
+
+    worker.postMessage([1, framerate, width, height, bitrate, false]);
+    const gradient = ctx.createLinearGradient(1/4 * width, 0, 3/4 * width, 0);
+    gradient.addColorStop(0, '#000');
+    gradient.addColorStop(1, '#fff');
+    const maxFrames = 2*framerate;
+    for(let i = 0; i < maxFrames; i++) {
+      ctx.fillStyle = `hsl(${i*360/maxFrames}, 100%, 50%)`;
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(1/4 * width, 1/4 * height, width/2, height/2);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      worker.postMessage(imageData.data.buffer, [imageData.data.buffer]);
+    }
+    worker.postMessage(null);
+    const webm = (await nextEvent(worker, "message")).data;
+    const blob = new Blob([webm], {type: "video/webm"});
+    const url = URL.createObjectURL(blob);
+
+    const video = document.createElement("video");
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.controls = true;
+    video.src = url;
+    document.body.append(video);
+    video.play();
+  }
+
+  document.all.go.onclick = init;
+</script>

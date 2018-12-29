@@ -1,0 +1,119 @@
+<!doctype html>
+<h1>TransformStream webm wasm demo</h1>
+<button id="go">Go</button>
+<script>
+  const framerate = 30;
+  const bitrate = 200;
+
+  // Returns a `ReadableStream` of `ImagaData` at `framerate` captured from
+  // the user’s web cam.
+  function cameraStream({width, height}) {
+    return new ReadableStream({
+      async start(controller) {
+        const cvs = document.createElement("canvas");
+        const video = document.createElement("video");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: {ideal: width},
+            height: {ideal: height},
+          },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.play();
+        await nextEvent(video, "playing");
+        ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
+        const ctx = cvs.getContext("2d");
+        const frameTimeout = 1000/framerate;
+        setTimeout(async function f() {
+          ctx.drawImage(video, 0, 0);
+          await controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height));
+          setTimeout(f, frameTimeout);
+        }, frameTimeout);
+      }
+    });
+  }
+
+  // Returns an object with `value` and `stream`.
+  // - `value` is the first value that came through the input stream
+  // - `stream` is an unused copy of the input stream
+  async function firstItem(stream_) {
+    const [rs1, stream] = stream_.tee();
+    const reader = rs1.getReader();
+    const {value, done} = await reader.read();
+    if(done) {
+      throw Error("There was no first item");
+    }
+    reader.releaseLock();
+    rs1.cancel();
+    return {value, stream};
+  }
+
+  // Returns the next <name> event of `target`.
+  function nextEvent(target, name) {
+    return new Promise(resolve => {
+      target.addEventListener(name, resolve, {once: true});
+    });
+  }
+
+  // Like array.map() but for streams.
+  function map(f) {
+    return new TransformStream({
+      transform(chunk, controller) {
+        controller.enqueue(f(chunk));
+      }
+    });
+  }
+
+  // Takes a `ReadableStream` and turns it onto a `MediaStream` URL using MSE.
+  function mediaSourceStream(stream, {mimeType}) {
+    const mediaSource = new MediaSource();
+    mediaSource.onsourceopen = () => {
+      const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+      stream.pipeTo(new WritableStream({
+        async write(chunk) {
+          sourceBuffer.appendBuffer(chunk);
+          // This turns MSE backpressure into WHATWG Stream backpressure.
+          await nextEvent(sourceBuffer, "updateend");
+        },
+        close() {
+          mediaSource.endOfStream();
+        }
+      }));
+    };
+    return URL.createObjectURL(mediaSource);
+  }
+
+  async function init() {
+    const worker = new Worker("../dist/webm-transformstreamworker.umd.js");
+    worker.postMessage("../dist/webm-wasm.wasm");
+    await nextEvent(worker, "message");
+
+    // Get the first item from the stream to know the dimensions of the video stream.
+    const camera = cameraStream({
+      width: 400,
+      height: 400
+    });
+    const {stream, value} = await firstItem(camera);
+    worker.postMessage([1, framerate, value.width, value.height, bitrate, true]);
+    // The `TransformStream` returned by the worker takes a series of
+    // RGBA buffers and transforms it into a stream of streamable webm file chunks.
+    const webmTransform = (await nextEvent(worker, "message")).data;
+
+    const webmStream = stream
+      .pipeThrough(map(imageData => imageData.data.buffer))
+      .pipeThrough(webmTransform);
+    const webmMediaStream = mediaSourceStream(webmStream, {mimeType: `video/webm; codecs="vp8"`});
+
+    const video = document.createElement("video");
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.controls = true;
+    video.src = webmMediaStream;
+    document.body.append(video);
+    video.play();
+  }
+
+  document.all.go.onclick = init;
+</script>
