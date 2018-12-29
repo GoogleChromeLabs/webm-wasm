@@ -10,8 +10,8 @@
 // libyuv
 #include "libyuv.h"
 // Our MyMkvWriters
-#include "mymkvwriter.hpp"
-#include "mymkvstreamwriter.hpp"
+#include "./mkvwriter/mymkvwriter.hpp"
+#include "./mkvwriter/mymkvstreamwriter.hpp"
 
 using namespace emscripten;
 using namespace mkvmuxer;

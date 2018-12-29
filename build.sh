@@ -71,9 +71,9 @@ echo "============================================="
     -I build-webm \
     -o ./webm-wasm.js \
     -x c++ \
-    webm-wasm.cpp \
-    mymkvwriter.cpp \
-    mymkvstreamwriter.cpp \
+    src/webm-wasm.cpp \
+    src/mkvwriter/mymkvwriter.cpp \
+    src/mkvwriter/mymkvstreamwriter.cpp \
     build-yuv/libyuv.a \
     build-vpx/libvpx.a \
     build-webm/libwebm.a

@@ -1,4 +1,4 @@
-import webmWasm from "./dist/webm-wasm.js";
+import webmWasm from "../../dist/webm-wasm.js";
 
 function nextEvent(target, name) {
   return new Promise(resolve => {
