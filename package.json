@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "install": "napa",
-    "dockerimage": "docker build -t vpxwasm .",
-    "build:emscripten": "docker run --rm -v $(pwd):/src -e SKIP_LIBYUV=\"${SKIP_LIBYUV}\" -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_LIBWEBM=\"${SKIP_LIBWEBM}\" vpxwasm ./build.sh",
+    "build:dockerimage": "docker image inspect -f '.' webmwasm || docker build -t webmwasm .",
+    "build:emscripten": "docker run --rm -v $(pwd):/src -e SKIP_LIBYUV=\"${SKIP_LIBYUV}\" -e SKIP_LIBVPX=\"${SKIP_LIBVPX}\" -e SKIP_LIBWEBM=\"${SKIP_LIBWEBM}\" webmwasm ./build.sh",
     "build:modularize": "echo 'export default webmWasm;' >> dist/webm-wasm.js",
     "build:bundle:worker": "microbundle build --name webmworker -o dist/webm-worker.js webm-worker.js",
     "build:bundle:transformstreamworker": "microbundle build --name webmtransformstreamworker -o dist/webm-transformstreamworker.js webm-transformstreamworker.js",
     "build:bundle": "npm run build:bundle:worker && npm run build:bundle:transformstreamworker",
-    "build": "npm run build:emscripten && npm run build:modularize && npm run build:bundle",
+    "build": "npm run build:dockerimage && npm run build:emscripten && npm run build:modularize && npm run build:bundle",
     "serve": "http-server -c0"
   },
   "repository": {
