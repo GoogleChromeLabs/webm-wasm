@@ -90,10 +90,9 @@ Example: <a href="?realtime&framerate=60"><code>?realtime&framerate=60</code></a
   }
 
   async function init() {
-    const worker = new Worker("worker.js");
-    if((await nextEvent(worker, "message")).data !== "READY") {
-      throw Error("Unexpected initialization response");
-    }
+    const worker = new Worker("../dist/webm-transformstreamworker.umd.js");
+    worker.postMessage("../dist/webm-wasm.wasm");
+    await nextEvent(worker, "message");
 
     // Get the first item from the stream to know the dimensions
     const {stream, value} = await getFirstItem(realtime ? cameraStream() : canvasStream());

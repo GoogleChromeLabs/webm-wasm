@@ -1,4 +1,6 @@
 node_modules
 build-*
-encoder.js
-encoder.wasm
+webm-wasm.js
+webm-wasm.wasm
+dist
+
