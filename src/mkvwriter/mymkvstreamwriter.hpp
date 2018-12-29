@@ -28,6 +28,7 @@ class MyMkvStreamWriter : public mkvmuxer::IMkvWriter {
   uint8_t* buf;
   uint64_t pos;
   uint64_t len;
+  uint64_t cap;
   val cb;
 };
 
