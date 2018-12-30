@@ -12,8 +12,9 @@ export function initWasmModule(moduleFactory, wasmUrl) {
       // Just to be safe, don't automatically invoke any wasm functions
       noInitialRun: true,
       locateFile(url) {
-        // Redirect the request for the wasm binary to whatever webpack gave us.
-        if (url.endsWith(".wasm")) return wasmUrl;
+        if (url.endsWith(".wasm")) {
+          return wasmUrl;
+        }
         return url;
       },
       onRuntimeInitialized() {
@@ -28,25 +29,25 @@ export function initWasmModule(moduleFactory, wasmUrl) {
 }
 
 function createTransformStream(module, ev) {
-  let controller;
-  const encoder = new module.WebmEncoder(...ev.data, b => {
-    const copy = new Uint8Array(b);
-    controller.enqueue(copy.buffer);
-  });
-  if(encoder.lastError()) {
-    console.error(encoder.lastError());
-    return;
-  }
+  let encoder;
   const ts = new TransformStream({
-    start(controller_) {
-      controller = controller_;
-    },
-    transform(chunk) {
-      if(!encoder.addRGBAFrame(chunk)) {
+    start(controller) {
+      encoder = new module.WebmEncoder(...ev.data, b => {
+        const copy = new Uint8Array(b);
+        controller.enqueue(copy.buffer);
+      });
+      if (encoder.lastError()) {
         console.error(encoder.lastError());
+        controller.close();
       }
     },
-    flush(controller) {
+    transform(chunk, controller) {
+      if (!encoder.addRGBAFrame(chunk)) {
+        console.error(encoder.lastError());
+        controller.close();
+      }
+    },
+    flush() {
       // This will invoke the callback to flush
       encoder.finalize();
       encoder.delete();
