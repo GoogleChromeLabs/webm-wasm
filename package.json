@@ -1,8 +1,7 @@
 {
-  "name": "cruft",
+  "name": "webm-wasm",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "webm-wasm lets you create webm videos in JavaScript via WebAssembly.",
   "scripts": {
     "install": "napa",
     "build:dockerimage": "docker image inspect -f '.' webmwasm || docker build -t webmwasm .",
@@ -16,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "gh:surma/cruft"
+    "url": "https://github.com/GoogleChromeLabs/webm-wasm.git"
   },
   "napa": {
     "libwebm": "webmproject/libwebm#libwebm-1.0.0.27",
@@ -28,7 +27,6 @@
     "microbundle": "^0.9.0",
     "napa": "^3.0.0"
   },
-  "keywords": [],
-  "author": "Surma <surma@surma.link>",
+  "author": "Surma <surma@google.com>",
   "license": "Apache-2.0"
 }
