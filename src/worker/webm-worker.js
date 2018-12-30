@@ -53,18 +53,34 @@ export function initWasmModule(moduleFactory, wasmUrl) {
     });
   });
 }
-
+const defaultConfig = {
+  width: 300,
+  height: 150,
+  timebaseNum: 1,
+  timebaseDen: 30,
+  bitrate: 200,
+  realtime: false
+};
 async function init() {
   const wasmPath = await nextMessage(parentPort, "message");
   const module = await initWasmModule(webmWasm, wasmPath);
   parentPort.postMessage("READY");
-  const config = await nextMessage(parentPort, "message");
-  const instance = new module.WebmEncoder(...config, chunk => {
-    const copy = new Uint8Array(chunk);
-    parentPort.postMessage(copy.buffer, [copy.buffer]);
-  });
+  const userParams = await nextMessage(parentPort, "message");
+  const params = Object.assign({}, defaultConfig, userParams);
+  const instance = new module.WebmEncoder(
+    params.timebaseNum,
+    params.timebaseDen,
+    params.width,
+    params.height,
+    params.bitrate,
+    params.realtime,
+    chunk => {
+      const copy = new Uint8Array(chunk);
+      parentPort.postMessage(copy.buffer, [copy.buffer]);
+    }
+  );
   onMessage(parentPort, msg => {
-    // A false-y message indicated the end-of-stream.
+    // A false-y message indicates the end-of-stream.
     if (!msg) {
       // This will invoke the callback to flush
       instance.finalize();

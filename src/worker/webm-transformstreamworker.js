@@ -28,29 +28,47 @@ export function initWasmModule(moduleFactory, wasmUrl) {
   });
 }
 
-function createTransformStream(module, ev) {
-  let encoder;
+const defaultConfig = {
+  width: 300,
+  height: 150,
+  timebaseNum: 1,
+  timebaseDen: 30,
+  bitrate: 200,
+  realtime: false
+};
+
+function createTransformStream(module, userParams) {
+  let instance;
   const ts = new TransformStream({
     start(controller) {
-      encoder = new module.WebmEncoder(...ev.data, b => {
-        const copy = new Uint8Array(b);
-        controller.enqueue(copy.buffer);
-      });
-      if (encoder.lastError()) {
-        console.error(encoder.lastError());
+      const params = Object.assign({}, defaultConfig, userParams);
+      instance = new module.WebmEncoder(
+        params.timebaseNum,
+        params.timebaseDen,
+        params.width,
+        params.height,
+        params.bitrate,
+        params.realtime,
+        chunk => {
+          const copy = new Uint8Array(chunk);
+          controller.enqueue(copy.buffer);
+        }
+      );
+      if (instance.lastError()) {
+        console.error(instance.lastError());
         controller.close();
       }
     },
     transform(chunk, controller) {
-      if (!encoder.addRGBAFrame(chunk)) {
-        console.error(encoder.lastError());
+      if (!instance.addRGBAFrame(chunk)) {
+        console.error(instance.lastError());
         controller.close();
       }
     },
     flush() {
       // This will invoke the callback to flush
-      encoder.finalize();
-      encoder.delete();
+      instance.finalize();
+      instance.delete();
     }
   });
   postMessage(ts, [ts]);
@@ -59,7 +77,7 @@ function createTransformStream(module, ev) {
 async function init() {
   const wasmPath = (await nextEvent(self, "message")).data;
   const module = await initWasmModule(webmWasm, wasmPath);
-  addEventListener("message", ev => createTransformStream(module, ev));
+  addEventListener("message", ev => createTransformStream(module, ev.data));
   postMessage("READY");
 }
 init();

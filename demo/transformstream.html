@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <h1>TransformStream webm wasm demo</h1>
 <button id="go">Go</button>
 <script>
@@ -7,27 +7,29 @@
 
   // Returns a `ReadableStream` of `ImagaData` at `framerate` captured from
   // the user’s web cam.
-  function cameraStream({width, height}) {
+  function cameraStream({ width, height }) {
     return new ReadableStream({
       async start(controller) {
         const cvs = document.createElement("canvas");
         const video = document.createElement("video");
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: {ideal: width},
-            height: {ideal: height},
+            width: { ideal: width },
+            height: { ideal: height }
           },
           audio: false
         });
         video.srcObject = stream;
         video.play();
         await nextEvent(video, "playing");
-        ([cvs.width, cvs.height] = [video.videoWidth, video.videoHeight]);
+        [cvs.width, cvs.height] = [video.videoWidth, video.videoHeight];
         const ctx = cvs.getContext("2d");
-        const frameTimeout = 1000/framerate;
+        const frameTimeout = 1000 / framerate;
         setTimeout(async function f() {
           ctx.drawImage(video, 0, 0);
-          await controller.enqueue(ctx.getImageData(0, 0, cvs.width, cvs.height));
+          await controller.enqueue(
+            ctx.getImageData(0, 0, cvs.width, cvs.height)
+          );
           setTimeout(f, frameTimeout);
         }, frameTimeout);
       }
@@ -40,19 +42,19 @@
   async function firstItem(stream_) {
     const [rs1, stream] = stream_.tee();
     const reader = rs1.getReader();
-    const {value, done} = await reader.read();
-    if(done) {
+    const { value, done } = await reader.read();
+    if (done) {
       throw Error("There was no first item");
     }
     reader.releaseLock();
     rs1.cancel();
-    return {value, stream};
+    return { value, stream };
   }
 
   // Returns the next <name> event of `target`.
   function nextEvent(target, name) {
     return new Promise(resolve => {
-      target.addEventListener(name, resolve, {once: true});
+      target.addEventListener(name, resolve, { once: true });
     });
   }
 
@@ -66,20 +68,22 @@
   }
 
   // Takes a `ReadableStream` and turns it onto a `MediaStream` URL using MSE.
-  function mediaSourceStream(stream, {mimeType}) {
+  function mediaSourceStream(stream, { mimeType }) {
     const mediaSource = new MediaSource();
     mediaSource.onsourceopen = () => {
       const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-      stream.pipeTo(new WritableStream({
-        async write(chunk) {
-          sourceBuffer.appendBuffer(chunk);
-          // This turns MSE backpressure into WHATWG Stream backpressure.
-          await nextEvent(sourceBuffer, "updateend");
-        },
-        close() {
-          mediaSource.endOfStream();
-        }
-      }));
+      stream.pipeTo(
+        new WritableStream({
+          async write(chunk) {
+            sourceBuffer.appendBuffer(chunk);
+            // This turns MSE backpressure into WHATWG Stream backpressure.
+            await nextEvent(sourceBuffer, "updateend");
+          },
+          close() {
+            mediaSource.endOfStream();
+          }
+        })
+      );
     };
     return URL.createObjectURL(mediaSource);
   }
@@ -94,8 +98,14 @@
       width: 400,
       height: 400
     });
-    const {stream, value} = await firstItem(camera);
-    worker.postMessage([1, framerate, value.width, value.height, bitrate, true]);
+    const { stream, value } = await firstItem(camera);
+    worker.postMessage({
+      timebaseDen: framerate,
+      width: value.width,
+      height: value.height,
+      bitrate,
+      realtime: true
+    });
     // The `TransformStream` returned by the worker takes a series of
     // RGBA buffers and transforms it into a stream of streamable webm file chunks.
     const webmTransform = (await nextEvent(worker, "message")).data;
@@ -103,7 +113,9 @@
     const webmStream = stream
       .pipeThrough(map(imageData => imageData.data.buffer))
       .pipeThrough(webmTransform);
-    const webmMediaStream = mediaSourceStream(webmStream, {mimeType: `video/webm; codecs="vp8"`});
+    const webmMediaStream = mediaSourceStream(webmStream, {
+      mimeType: `video/webm; codecs="vp8"`
+    });
 
     const video = document.createElement("video");
     video.muted = true;

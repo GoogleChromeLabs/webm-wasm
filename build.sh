@@ -83,8 +83,3 @@ echo "============================================="
 echo "============================================="
 echo "Compiling wasm bindings done"
 echo "============================================="
-
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-echo "Did you update your docker image?"
-echo "Run docker pull trzeci/emscripten"
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"

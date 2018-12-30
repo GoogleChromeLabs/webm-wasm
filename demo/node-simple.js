@@ -18,7 +18,12 @@ async function init() {
   worker.postMessage("../dist/webm-wasm.wasm");
   await nextEvent(worker, "message");
 
-  worker.postMessage([1, framerate, width, height, bitrate, false]);
+  worker.postMessage({
+    timebaseDen: framerate,
+    width,
+    height,
+    bitrate
+  });
   const maxFrames = 2 * framerate;
   for (let i = 0; i < maxFrames; i++) {
     const buffer = new ArrayBuffer(width * height * 4);

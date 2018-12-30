@@ -30,7 +30,13 @@ async function handler(req, res) {
   worker.postMessage("../dist/webm-wasm.wasm");
   await nextEvent(worker, "message");
 
-  worker.postMessage([1, framerate, width, height, bitrate, true]);
+  worker.postMessage({
+    timebaseDen: framerate,
+    width,
+    height,
+    bitrate,
+    realtime: true
+  });
   res.setHeader("Content-Type", "video/webm");
   worker.on("message", chunk => {
     res.write(Buffer.from(chunk));
