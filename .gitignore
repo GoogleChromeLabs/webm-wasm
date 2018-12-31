@@ -1,6 +1,2 @@
 node_modules
 build-*
-webm-wasm.js
-webm-wasm.wasm
-dist
-
