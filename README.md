@@ -21,7 +21,7 @@ await nextMessage(worker);
 worker.postMessage({
   width: 512,
   height: 512
-  // More constructor options below
+  // ... more constructor options below
 });
 // 5. Start sending frames!
 while (hasNextFrame()) {
@@ -46,6 +46,21 @@ worker.terminate();
 - `bitrate` (default: `200`): Bitrate in kbps
 - `realtime` (default: `false`): Prioritize encoding speed over compression ratio and quality. With realtime mode turned off the worker will send a single `ArrayBuffer` containing the entire webm video file once input stream has ended. With realtime mode turned on the worker will send an `ArrayBuffer` in regular intervals.
 - `kLive` (default: `true`): Set the webm writer to `kLive` mode when true, or to `kFile` mode when false. I am still not sure what the difference is except that `kLive` files are slightly smaller and work with MSE 🤷‍♂️
+
+### From a CDN
+
+Worker code can’t be loaded from another origin directly, even when the source is CORS-enabled. It is, however, still possible to load webm-wasm from a CDN like [unpkg.com] with a little workaround:
+
+```js
+const buffer = await fetch(
+  "https://unpkg.com/webm-wasm@<version>/dist/webm-worker.umd.js"
+).then(r => r.arrayBuffer());
+const worker = new Worker(
+  URL.createObjectURL(new Blob([buffer], { type: "text/javascript" }))
+);
+worker.postMessage("https://unpkg.com/webm-wasm@<version>/dist/webm-wasm.wasm");
+// Continue as normal
+```
 
 ### WebAssembly
 
