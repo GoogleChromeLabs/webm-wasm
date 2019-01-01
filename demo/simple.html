@@ -67,5 +67,8 @@ limitations under the License.
     video.play();
   }
 
-  document.all.go.onclick = init;
+  document.all.go.onclick = ev => {
+    ev.target.remove();
+    init();
+  };
 </script>

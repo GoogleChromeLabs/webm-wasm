@@ -35,7 +35,7 @@ void clear_image(vpx_image_t *img) ;
 
 class WebmEncoder {
   public:
-    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime, val cb);
+    WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate, bool realtime, bool klive, val cb);
     ~WebmEncoder();
     bool addRGBAFrame(std::string rgba);
     bool finalize();
@@ -43,7 +43,7 @@ class WebmEncoder {
 
   private:
     bool InitCodec(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate);
-    bool InitMkvWriter(val cb);
+    bool InitMkvWriter(bool klive, val cb);
     bool InitImageBuffer();
 
     bool RGBAtoVPXImage(const uint8_t *data);
@@ -60,12 +60,12 @@ class WebmEncoder {
     bool realtime = false;
 };
 
-WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_, val cb): realtime(realtime_) {
+WebmEncoder::WebmEncoder(int timebase_num, int timebase_den, unsigned int width, unsigned int height, unsigned int bitrate_kbps, bool realtime_, bool klive, val cb): realtime(realtime_) {
 
   if(!InitCodec(timebase_num, timebase_den, width, height, bitrate_kbps)) {
     throw last_error;
   }
-  if(!InitMkvWriter(cb)) {
+  if(!InitMkvWriter(klive, cb)) {
     throw last_error;
   }
   if(!InitImageBuffer()) {
@@ -180,7 +180,7 @@ bool WebmEncoder::InitCodec(int timebase_num, int timebase_den, unsigned int wid
   return true;
 }
 
-bool WebmEncoder::InitMkvWriter(val cb) {
+bool WebmEncoder::InitMkvWriter(bool klive, val cb) {
   if(realtime) {
     mkv_writer = new MyMkvStreamWriter(cb);
   } else {
@@ -195,8 +195,7 @@ bool WebmEncoder::InitMkvWriter(val cb) {
     last_error = "Could not add video track";
     return false;
   }
-  // main_segment->set_mode(realtime ? Segment::Mode::kLive : Segment::Mode::kFile);
-  main_segment->set_mode(Segment::Mode::kLive);
+  main_segment->set_mode(klive ? Segment::Mode::kLive : Segment::Mode::kFile);
   auto info = main_segment->GetSegmentInfo();
   // Branding, yo
   auto muxing_app = std::string(info->muxing_app()) + " but in wasm";
@@ -278,7 +277,7 @@ void clear_image(vpx_image_t *img) {
 
 EMSCRIPTEN_BINDINGS(my_module) {
   class_<WebmEncoder>("WebmEncoder")
-    .constructor<int, int, unsigned int, unsigned int, unsigned int, bool, val>()
+    .constructor<int, int, unsigned int, unsigned int, unsigned int, bool, bool, val>()
     .function("addRGBAFrame", &WebmEncoder::addRGBAFrame)
     .function("finalize", &WebmEncoder::finalize)
     .function("lastError", &WebmEncoder::lastError);

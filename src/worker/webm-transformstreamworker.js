@@ -41,14 +41,7 @@ export function initWasmModule(moduleFactory, wasmUrl) {
   });
 }
 
-const defaultConfig = {
-  width: 300,
-  height: 150,
-  timebaseNum: 1,
-  timebaseDen: 30,
-  bitrate: 200,
-  realtime: false
-};
+import defaultConfig from "./defaults.js";
 
 function createTransformStream(module, userParams) {
   let instance;
@@ -62,6 +55,7 @@ function createTransformStream(module, userParams) {
         params.height,
         params.bitrate,
         params.realtime,
+        params.kLive,
         chunk => {
           const copy = new Uint8Array(chunk);
           controller.enqueue(copy.buffer);

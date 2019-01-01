@@ -66,14 +66,9 @@ export function initWasmModule(moduleFactory, wasmUrl) {
     });
   });
 }
-const defaultConfig = {
-  width: 300,
-  height: 150,
-  timebaseNum: 1,
-  timebaseDen: 30,
-  bitrate: 200,
-  realtime: false
-};
+
+import defaultConfig from "./defaults.js";
+
 async function init() {
   const wasmPath = await nextMessage(parentPort, "message");
   const module = await initWasmModule(webmWasm, wasmPath);
@@ -87,6 +82,7 @@ async function init() {
     params.height,
     params.bitrate,
     params.realtime,
+    params.kLive,
     chunk => {
       const copy = new Uint8Array(chunk);
       parentPort.postMessage(copy.buffer, [copy.buffer]);
