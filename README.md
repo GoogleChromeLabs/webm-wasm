@@ -2,6 +2,8 @@
 
 webm-wasm lets you create webm videos in JavaScript via WebAssembly. The library consumes raw RGBA buffers (like `ImageData` from a `<canvas>`, for example) and turns them into a webm video with the given framerate and quality. With realtime mode you can also use webm-wasm for streaming webm videos.
 
+Works in all major browsers (although Safari can’t play webm 🐼).
+
 The wasm module was created by [emscripten’ing][emscripten] [libvpx], [libwebm] and [libyuv].
 
 ## Usage
@@ -97,6 +99,7 @@ $ npm run build
 
 Apache 2.0
 
+[unpkg.com]: https://unpkg.com
 [docker]: https://www.docker.com/
 [transferable streams]: https://www.chromestatus.com/features/5298733486964736
 [embind]: https://developers.google.com/web/updates/2018/08/embind
