@@ -31,7 +31,9 @@ worker.postMessage({
 });
 // 5. Start sending frames!
 while (hasNextFrame()) {
-  // ArrayBuffer containing RGBA data
+  // ArrayBuffer containing RGBA data.
+  // The ArrayBuffer is a contiguous array
+  // of RGBA integers ranging from 0-255.
   const buffer = getFrame();
   worker.postMessage(buffer, [buffer]);
 }
