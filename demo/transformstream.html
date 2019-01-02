@@ -101,7 +101,7 @@ limitations under the License.
   }
 
   async function init() {
-    const worker = new Worker("../dist/webm-transformstreamworker.umd.js");
+    const worker = new Worker("../dist/webm-transformstreamworker.js");
     worker.postMessage("../dist/webm-wasm.wasm");
     await nextEvent(worker, "message");
 

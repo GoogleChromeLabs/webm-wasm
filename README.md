@@ -61,7 +61,7 @@ Worker code can’t be loaded from another origin directly, even when the source
 
 ```js
 const buffer = await fetch(
-  "https://unpkg.com/webm-wasm@<version>/dist/webm-worker.umd.js"
+  "https://unpkg.com/webm-wasm@<version>/dist/webm-worker.js"
 ).then(r => r.arrayBuffer());
 const worker = new Worker(
   URL.createObjectURL(new Blob([buffer], { type: "text/javascript" }))
