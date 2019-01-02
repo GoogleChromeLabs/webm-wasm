@@ -19,7 +19,7 @@ function nextEvent(target, name) {
   });
 }
 
-export function initWasmModule(moduleFactory, wasmUrl) {
+function initWasmModule(moduleFactory, wasmUrl) {
   return new Promise(resolve => {
     const module = moduleFactory({
       // Just to be safe, don't automatically invoke any wasm functions
