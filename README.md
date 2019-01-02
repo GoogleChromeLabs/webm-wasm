@@ -1,6 +1,6 @@
 # webm-wasm
 
-webm-wasm lets you create webm videos in JavaScript via WebAssembly. The library consumes raw RGBA buffers (like `ImageData` from a `<canvas>`, for example) and turns them into a webm video with the given framerate and quality. With realtime mode you can also use webm-wasm for streaming webm videos.
+webm-wasm lets you create webm videos in JavaScript via WebAssembly. The library consumes raw RGBA32 buffers (4 bytes per pixel) and turns them into a webm video with the given framerate and quality. This makes it compatible out-of-the-box with [`ImageData`][imagedata] from a `<canvas>`. With realtime mode you can also use webm-wasm for streaming webm videos.
 
 Works in all major browsers (although Safari can’t play webm 🐼).
 
@@ -31,7 +31,7 @@ worker.postMessage({
 });
 // 5. Start sending frames!
 while (hasNextFrame()) {
-  // ArrayBuffer containing RGBA data
+  // ArrayBuffer containing RGBA24 data
   const buffer = getFrame();
   worker.postMessage(buffer, [buffer]);
 }
@@ -43,7 +43,7 @@ const webm = await nextMessage(worker);
 worker.terminate();
 ```
 
-(You can find an implementation of `nextMessage()` in [`src/worker/webm-worker.js`][nextMessage])
+(You can find an implementation of `nextMessage()` in [`src/worker/webm-worker.js`][nextmessage])
 
 ### Constructor options
 
@@ -120,7 +120,8 @@ $ npm run build
 
 Apache 2.0
 
-[nextMessage]: https://github.com/GoogleChromeLabs/webm-wasm/blob/63b96a4f0e2821f34f972827f800259222ef9142/src/worker/webm-worker.js#L37-L46
+[imagedata]: https://developer.mozilla.org/en-US/docs/Web/API/ImageData
+[nextmessage]: https://github.com/GoogleChromeLabs/webm-wasm/blob/63b96a4f0e2821f34f972827f800259222ef9142/src/worker/webm-worker.js#L37-L46
 [unpkg.com]: https://unpkg.com
 [docker]: https://www.docker.com/
 [transferable streams]: https://www.chromestatus.com/features/5298733486964736
