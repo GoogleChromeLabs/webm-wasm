@@ -43,6 +43,8 @@ const webm = await nextMessage(worker);
 worker.terminate();
 ```
 
+(You can find an implementation of `nextMessage()` in [`src/worker/webm-worker.js`][nextMessage])
+
 ### Constructor options
 
 - `width` (default: `300`): Width of the video
@@ -117,6 +119,7 @@ $ npm run build
 
 Apache 2.0
 
+[nextMessage]: https://github.com/GoogleChromeLabs/webm-wasm/blob/63b96a4f0e2821f34f972827f800259222ef9142/src/worker/webm-worker.js#L37-L46
 [unpkg.com]: https://unpkg.com
 [docker]: https://www.docker.com/
 [transferable streams]: https://www.chromestatus.com/features/5298733486964736
