@@ -1,6 +1,6 @@
 {
   "name": "webm-wasm",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "webm-wasm lets you create webm videos in JavaScript via WebAssembly.",
   "scripts": {
     "build:dockerimage": "docker image inspect -f '.' webmwasm || docker build -t webmwasm .",
