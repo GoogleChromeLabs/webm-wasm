@@ -6,6 +6,10 @@ Works in all major browsers (although Safari can’t play webm 🐼).
 
 The wasm module was created by [emscripten’ing][emscripten] [libvpx], [libwebm] and [libyuv].
 
+```
+$ npm install --save webm-wasm
+```
+
 ## Usage
 
 webm-wasm runs in a worker by default. It works on the web and in in Node, although you need Node 11+ with the `--experimental-worker` flag.
@@ -85,6 +89,20 @@ class WebmEncoder {
 ### Experimental: TransformStreams
 
 [Transferable Streams] are behind the “Experimental Web Platform Features” flag in Chrome Canary. The alternative `webm-transformstreamworker.js` makes use of them to expose the webm encoder. Take a look at the demos to see the usage.
+
+## Demos
+
+To run the web demos, start the websever using
+
+```
+$ npm run serve
+```
+
+To run the node demos, run them directly (requires Node 11+):
+
+```
+$ node --experimental-worker ./node-simple.js
+```
 
 ## Building
 
