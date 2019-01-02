@@ -112,6 +112,7 @@ Because the build process is completely [Dockerized][docker], Docker is required
 
 ```
 $ npm install
+$ npx napa
 $ npm run build
 ```
 
