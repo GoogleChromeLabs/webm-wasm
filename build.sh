@@ -70,6 +70,7 @@ echo "============================================="
     -s ALLOW_MEMORY_GROWTH=1 \
     -s ASSERTIONS=0 \
     -s MODULARIZE=1 \
+    -s FILESYSTEM=0 \
     -s 'EXPORT_NAME="webmWasm"' \
     --std=c++11 \
     -I node_modules/libyuv/include \
