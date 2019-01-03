@@ -28,7 +28,7 @@ function nextEvent(target, name) {
 
 async function init() {
   const worker = new Worker("../dist/webm-worker.js");
-  worker.postMessage("../dist/webm-wasm.wasm");
+  worker.postMessage("./webm-wasm.wasm");
   await nextEvent(worker, "message");
 
   worker.postMessage({

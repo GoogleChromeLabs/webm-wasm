@@ -102,7 +102,7 @@ limitations under the License.
 
   async function init() {
     const worker = new Worker("../dist/webm-transformstreamworker.js");
-    worker.postMessage("../dist/webm-wasm.wasm");
+    worker.postMessage("./webm-wasm.wasm");
     await nextEvent(worker, "message");
 
     // Get the first item from the stream to know the dimensions of the video stream.

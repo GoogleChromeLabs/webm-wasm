@@ -40,7 +40,7 @@ async function handler(req, res) {
   }
 
   const worker = new Worker("../dist/webm-worker.js");
-  worker.postMessage("../dist/webm-wasm.wasm");
+  worker.postMessage("./webm-wasm.wasm");
   await nextEvent(worker, "message");
 
   worker.postMessage({
