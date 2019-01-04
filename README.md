@@ -10,6 +10,8 @@ The wasm module was created by [emscripten’ing][emscripten] [libvpx], [libwebm
 $ npm install --save webm-wasm
 ```
 
+> Note: This is a proof-of-concept and not a production-grade library.
+
 ## Usage
 
 webm-wasm runs in a worker by default. It works on the web and in in Node, although you need Node 11+ with the `--experimental-worker` flag.
