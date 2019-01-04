@@ -72,6 +72,7 @@ echo "============================================="
     -s MODULARIZE=1 \
     -s FILESYSTEM=0 \
     -s EXPORT_ES6=1 \
+    -s MALLOC=emmalloc \
     -s 'EXPORT_NAME="webmWasm"' \
     --std=c++11 \
     -I node_modules/libyuv/include \
