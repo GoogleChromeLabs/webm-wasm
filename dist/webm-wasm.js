@@ -15,10 +15,4 @@ var Module=typeof webmWasm!=="undefined"?webmWasm:{};var moduleOverrides={};var 
 }
 );
 })();
-if (typeof exports === 'object' && typeof module === 'object')
-    module.exports = webmWasm;
-  else if (typeof define === 'function' && define['amd'])
-    define([], function() { return webmWasm; });
-  else if (typeof exports === 'object')
-    exports["webmWasm"] = webmWasm;
-  export default webmWasm;
+export default webmWasm;
