@@ -47,7 +47,7 @@ class WebmEncoder {
     bool InitImageBuffer();
 
     bool RGBAtoVPXImage(const uint8_t *data);
-    bool EncodeFrame(vpx_image_t *img, int frame_cnt);
+    bool EncodeFrame(vpx_image_t *img);
 
     vpx_codec_ctx_t ctx;
     unsigned int frame_cnt = 0;
@@ -85,7 +85,7 @@ WebmEncoder::~WebmEncoder() {
 
 bool WebmEncoder::addRGBAFrame(std::string rgba) {
   RGBAtoVPXImage((const uint8_t*) rgba.c_str());
-  if(!EncodeFrame(img, frame_cnt++)) {
+  if(!EncodeFrame(img)) {
     return false;
   }
   if(realtime) {
@@ -95,7 +95,7 @@ bool WebmEncoder::addRGBAFrame(std::string rgba) {
 }
 
 bool WebmEncoder::finalize() {
-  if(!EncodeFrame(NULL, -1)) {
+  if(!EncodeFrame(NULL)) {
     last_error = "Could not encode flush frame";
     return false;
   }
@@ -116,7 +116,7 @@ std::string WebmEncoder::lastError() {
   return std::string(last_error);
 }
 
-bool WebmEncoder::EncodeFrame(vpx_image_t *img, int frame_cnt) {
+bool WebmEncoder::EncodeFrame(vpx_image_t *img) {
   vpx_codec_iter_t iter = NULL;
   const vpx_codec_cx_pkt_t *pkt;
   vpx_codec_err_t err;
@@ -129,6 +129,7 @@ bool WebmEncoder::EncodeFrame(vpx_image_t *img, int frame_cnt) {
     0, /* flags. Use VPX_EFLAG_FORCE_KF to force a keyframe. */
     realtime ? VPX_DL_REALTIME : VPX_DL_BEST_QUALITY
   );
+  frame_cnt++;
   if(err != VPX_CODEC_OK) {
     last_error = std::string(vpx_codec_err_to_string(err));
     return false;
