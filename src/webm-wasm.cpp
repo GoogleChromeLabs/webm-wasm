@@ -140,13 +140,19 @@ bool WebmEncoder::EncodeFrame(vpx_image_t *img) {
     }
     auto frame_size = pkt->data.frame.sz;
     auto is_keyframe = (pkt->data.frame.flags & VPX_FRAME_IS_KEY) != 0;
-    if(!main_segment->AddFrame(
-      (uint8_t*) pkt->data.frame.buf,
-      pkt->data.frame.sz,
-      1, /* track id */
-      pkt->data.frame.pts * 1000000000ULL * cfg.g_timebase.num/cfg.g_timebase.den,
-      is_keyframe
-    )) {
+    auto timebase = 1000000000ULL * cfg.g_timebase.num/cfg.g_timebase.den;
+    auto timestamp = pkt->data.frame.pts * timebase;
+
+    Frame frame;
+    if (!frame.Init((uint8_t*) pkt->data.frame.buf, pkt->data.frame.sz)) {
+      last_error = "Could not initialize frame container";
+      return false;
+    }
+    frame.set_track_number(1);
+    frame.set_timestamp(timestamp);
+    frame.set_is_key(is_keyframe);
+    frame.set_duration(timebase);
+    if(!main_segment->AddGenericFrame(&frame)) {
       last_error = "Could not add frame";
       return false;
     }
