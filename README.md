@@ -55,7 +55,6 @@ worker.terminate();
 - `timebaseDen` (default: `30`): Denominator of the fraction for the length of a frame
 - `bitrate` (default: `200`): Bitrate in kbps
 - `realtime` (default: `false`): Prioritize encoding speed over compression ratio and quality. With realtime mode turned off the worker will send a single `ArrayBuffer` containing the entire webm video file once input stream has ended. With realtime mode turned on the worker will send an `ArrayBuffer` in regular intervals.
-- `kLive` (default: `true`): Set the webm writer to `kLive` mode when true, or to `kFile` mode when false. I am still not sure what the difference is except that `kLive` files are slightly smaller and work with MSE 🤷‍♂️
 
 ### From a CDN
 

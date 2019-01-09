@@ -21,11 +21,11 @@ MyMkvWriter::~MyMkvWriter() {
 }
 
 int32_t MyMkvWriter::Write(const void* buffer, uint32_t length) {
-  while(len + length >= cap) {
+  while(pos + length >= cap) {
     cap *= 2;
     buf = (uint8_t*) realloc((void*)buf, cap);
   }
-  memcpy(buf + len, buffer, length);
+  memcpy(buf + pos, buffer, length);
   len += length;
   pos += length;
   return 0;

@@ -75,6 +75,9 @@ async function init() {
   parentPort.postMessage("READY");
   const userParams = await nextMessage(parentPort, "message");
   const params = Object.assign({}, defaultConfig, userParams);
+  if(!('kLive' in params)) {
+    params.kLive = params.realtime;
+  }
   const instance = new module.WebmEncoder(
     params.timebaseNum,
     params.timebaseDen,

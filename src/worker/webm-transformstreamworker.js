@@ -48,6 +48,9 @@ function createTransformStream(module, userParams) {
   const ts = new TransformStream({
     start(controller) {
       const params = Object.assign({}, defaultConfig, userParams);
+      if(!('kLive' in params)) {
+        params.kLive = params.realtime;
+      }
       instance = new module.WebmEncoder(
         params.timebaseNum,
         params.timebaseDen,

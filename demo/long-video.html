@@ -1,0 +1,60 @@
+<!doctype html>
+<button id="btn">Generate video</button>
+<script>
+  function nextEvent(target, name) {
+    return new Promise(resolve => {
+      target.addEventListener(name, resolve, { once: true });
+    });
+  }
+
+  const cvs = document.createElement("canvas");
+  cvs.width = cvs.height = 256;
+  const ctx = cvs.getContext("2d");
+  function* frames() {
+    for(let i = 0; i < 60; i++) {
+      for(let j = 0; j < 30; j++) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        ctx.font = `${Math.floor(cvs.height / 2)}px serif`;
+        ctx.fillStyle = 'black';
+        ctx.fillText(`${i}`, 0, cvs.height);
+        yield ctx.getImageData(0, 0, cvs.width, cvs.height);
+      }
+    }
+  }
+
+  function createBufferURL(buffer, type = '') {
+    return URL.createObjectURL(new Blob([buffer], {type}));
+  }
+
+  async function init() {
+    const worker = new Worker("/dist/webm-worker.js");
+    worker.postMessage("/dist/webm-wasm.wasm");
+    await nextEvent(worker, "message");
+    worker.postMessage({
+      width: cvs.width,
+      height: cvs.height,
+      timebaseDen: 30 // fps
+    });
+    for(const frame of frames()) {
+      worker.postMessage(frame.data.buffer, [frame.data.buffer]);
+    }
+    worker.postMessage(null);
+    const webmBuffer = (await nextEvent(worker, "message")).data;
+    const url = createBufferURL(webmBuffer, `video/webm; codecs="vp8"`);
+
+    video = document.createElement("video");
+    video.src = url;
+    video.controls = true;
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    document.body.append(video);
+    video.play();
+  }
+
+  document.all.btn.onclick = ev => {
+    ev.target.disabled = true;
+    init();
+  }
+</script>

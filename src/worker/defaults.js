@@ -17,6 +17,5 @@ export default {
   timebaseNum: 1,
   timebaseDen: 30,
   bitrate: 200,
-  realtime: false,
-  kLive: true
+  realtime: false
 };
