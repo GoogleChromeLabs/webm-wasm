@@ -13,6 +13,8 @@ limitations under the License.
 <!DOCTYPE html>
 <h1>Live webm wasm demo</h1>
 <button id="go">Go</button>
+<!-- web streams API polyfill to support Firefox -->
+<script src="https://unpkg.com/@mattiasbuelens/web-streams-polyfill/dist/polyfill.min.js"></script>
 <script>
   const framerate = 30;
   const bitrate = 200;
