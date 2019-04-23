@@ -95,11 +95,13 @@ class WebmEncoder {
 
 ## Demos
 
-To run the web demos, start the websever using
+To run the web demos, start the webserver using
 
 ```
 $ npm run serve
 ```
+
+You'll find the demos at http://localhost:8080/demo/ .
 
 To run the node demos, run them directly (requires Node 11+):
 
