@@ -15,14 +15,17 @@
     "type": "git",
     "url": "https://github.com/GoogleChromeLabs/webm-wasm.git"
   },
+  "napa-config": {
+    "cache": false
+  },
   "napa": {
     "libwebm": "webmproject/libwebm#libwebm-1.0.0.27",
-    "libvpx": "webmproject/libvpx#v1.7.0",
+    "libvpx": "webmproject/libvpx#v1.9.0",
     "libyuv": "git+https://chromium.googlesource.com/libyuv/libyuv"
   },
   "devDependencies": {
     "http-server": "^0.11.1",
-    "microbundle": "^0.9.0",
+    "microbundle": "^0.12.4",
     "napa": "^3.0.0"
   },
   "author": "Surma <surma@google.com>",
