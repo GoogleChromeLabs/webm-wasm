@@ -21,7 +21,7 @@
     "libyuv": "git+https://chromium.googlesource.com/libyuv/libyuv"
   },
   "devDependencies": {
-    "http-server": "^0.11.1",
+    "http-server": "^14.1.1",
     "microbundle": "^0.9.0",
     "napa": "^3.0.0"
   },
