@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "http-server": "^0.11.1",
-    "microbundle": "^0.9.0",
+    "microbundle": "^0.15.1",
     "napa": "^3.0.0"
   },
   "author": "Surma <surma@google.com>",
